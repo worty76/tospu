@@ -1,0 +1,24 @@
+[workspace]
+members = [".", "crates/yub-core"]
+
+[package]
+name = "yub"
+version = "0.1.0"
+description = "A tiny desktop companion for big goals and gratitude"
+edition = "2021"
+
+[lib]
+name = "yub_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+yub-core = { path = "crates/yub-core" }
+tauri = { version = "2", features = ["tray-icon", "macos-private-api", "protocol-asset", "image-png"] }
+tauri-plugin-opener = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

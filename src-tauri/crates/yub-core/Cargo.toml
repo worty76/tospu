@@ -1,0 +1,13 @@
+[package]
+name = "yub-core"
+version = "0.1.0"
+edition = "2021"
+description = "Pure logic for Yub: settings, scheduling, sprite pack discovery. No GUI dependencies."
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,30 @@
+{
+  "goals": [
+    {
+      "title": "Build a system that serves 100k users"
+    },
+    {
+      "title": "Master Go internals and distributed systems"
+    }
+  ],
+  "quotes": [
+    {
+      "text": "Small steps every day add up to big results."
+    },
+    {
+      "text": "We suffer more often in imagination than in reality.",
+      "author": "Seneca"
+    },
+    {
+      "text": "The best time to plant a tree was 20 years ago. The second best time is now."
+    }
+  ],
+  "gratitude": [
+    "a healthy body that carries me through the day",
+    "people who believe in me"
+  ],
+  "proud": [
+    "You kept going on the hard days. That counts.",
+    "Look how far you have come this year."
+  ]
+}
