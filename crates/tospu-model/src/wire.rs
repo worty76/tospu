@@ -61,6 +61,10 @@ pub struct MonitorInfo {
     pub is_primary: bool,
 }
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsView {
@@ -76,6 +80,8 @@ pub struct SettingsView {
     pub shortcut_label: String,
     pub version: String,
     pub content_writable: bool,
+    #[serde(default = "default_true")]
+    pub settings_writable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

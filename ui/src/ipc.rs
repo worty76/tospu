@@ -67,6 +67,7 @@ pub async fn invoke_vec_err<A: Serialize, R: DeserializeOwned>(
 
 pub fn listen<T: DeserializeOwned + 'static>(event: &str, f: impl Fn(T) + 'static) {
     let event_name = event.to_string();
+    let event_for_log = event_name.clone();
     wasm_bindgen_futures::spawn_local(async move {
         let cb = Closure::<dyn FnMut(JsValue)>::new(move |ev: JsValue| {
             let payload =
@@ -76,8 +77,13 @@ pub fn listen<T: DeserializeOwned + 'static>(event: &str, f: impl Fn(T) + 'stati
             } else {
                 payload
             };
-            if let Ok(parsed) = serde_wasm_bindgen::from_value::<T>(payload) {
-                f(parsed);
+            match serde_wasm_bindgen::from_value::<T>(payload) {
+                Ok(parsed) => f(parsed),
+                Err(err) => {
+                    web_sys::console::error_1(
+                        &format!("[tospu] failed to decode {event_for_log}: {err}").into(),
+                    );
+                }
             }
         });
         let _ = tauri_listen(&event_name, cb.as_ref().unchecked_ref()).await;

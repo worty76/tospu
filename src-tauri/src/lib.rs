@@ -68,7 +68,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     let paths = Paths::resolve(app.handle())?;
     paths.ensure()?;
     let state = AppState::load(paths);
-    let onboarded = state.settings().onboarded;
+    let show_welcome = !state.settings().onboarded && state.settings_writable();
     app.manage(state);
 
     let window = app
@@ -80,7 +80,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     popup::spawn_hit_testing(app.handle().clone());
     scheduler_loop::spawn(app.handle().clone());
 
-    if !onboarded {
+    if show_welcome {
         settings_window::open(app.handle());
     }
 

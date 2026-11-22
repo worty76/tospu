@@ -71,9 +71,14 @@ pub fn ScheduleTab() -> impl IntoView {
             )
             .await
             {
-                Ok(_) => {
+                Ok(saved) => {
                     field_errors.set(Vec::new());
                     store.error.set(None);
+                    store.view.update(|opt| {
+                        if let Some(v) = opt {
+                            v.settings = saved;
+                        }
+                    });
                     store.refresh();
                 }
                 Err(errs) => {

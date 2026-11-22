@@ -48,11 +48,14 @@ impl ContentStore {
                     if was_v1 {
                         if let Some(parent) = self.path.parent() {
                             let bak = parent.join("content.v1.json.bak");
-                            if let Err(e) = atomic_write(&bak, raw.as_bytes()) {
-                                self.file = file;
-                                self.problem =
-                                    Some(format!("content.json: could not write v1 backup ({e})"));
-                                return;
+                            if !bak.exists() {
+                                if let Err(e) = atomic_write(&bak, raw.as_bytes()) {
+                                    self.file = file;
+                                    self.problem = Some(format!(
+                                        "content.json: could not write v1 backup ({e})"
+                                    ));
+                                    return;
+                                }
                             }
                         }
                         if let Err(e) = write_pretty(&self.path, &file) {
@@ -146,6 +149,22 @@ mod tests {
         assert_eq!(fs::read_to_string(&bak).unwrap(), v1);
         let written = fs::read_to_string(&path).unwrap();
         assert!(written.contains("\"version\": 2"));
+    }
+
+    #[test]
+    fn second_v1_migration_preserves_existing_backup() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("content.json");
+        let bak = dir.path().join("content.v1.json.bak");
+        fs::write(&bak, r#"{"goals":["Original backup"]}"#).unwrap();
+        fs::write(&path, r#"{"goals":["Second v1"]}"#).unwrap();
+
+        let store = ContentStore::open(&path, DEFAULTS);
+        assert!(store.problem().is_none());
+        assert_eq!(
+            fs::read_to_string(&bak).unwrap(),
+            r#"{"goals":["Original backup"]}"#
+        );
     }
 
     #[test]

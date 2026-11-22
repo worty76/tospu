@@ -64,6 +64,10 @@ impl AppState {
         self.lock().settings.clone()
     }
 
+    pub fn settings_writable(&self) -> bool {
+        self.lock().settings_error.is_none()
+    }
+
     pub fn packs(&self) -> Vec<Pack> {
         self.lock().scan.packs.clone()
     }
@@ -81,15 +85,20 @@ impl AppState {
     }
 
     /// Validate settings on a clone, save atomically, and bump scheduler generation on success.
+    /// Refuses to overwrite a broken `settings.json` until the user fixes it and clicks Reload.
     pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) -> Result<Settings, Vec<String>> {
         let mut l = self.lock();
+        if l.settings_error.is_some() {
+            return Err(vec![
+                "settings.json could not be read. Fix it or click Reload.".into(),
+            ]);
+        }
         let mut next = l.settings.clone();
         f(&mut next);
         next.validate()?;
         settings_store::save(&self.paths.settings_file, &next)
             .map_err(|e| vec![format!("saving settings: {e}")])?;
         l.settings = next.clone();
-        l.settings_error = None;
         drop(l);
         self.bump();
         Ok(next)
@@ -172,6 +181,7 @@ impl AppState {
             shortcut_label,
             version: env!("CARGO_PKG_VERSION").to_string(),
             content_writable: l.content.problem().is_none(),
+            settings_writable: l.settings_error.is_none(),
         }
     }
 
@@ -186,6 +196,20 @@ impl AppState {
 }
 
 pub fn apply_onboarding(state: &AppState, input: &OnboardingInput) -> Result<(), String> {
+    if !state.settings_writable() {
+        return Err("settings.json could not be read. Fix it or click Reload.".into());
+    }
+
+    let pack = input.active_pack.trim().to_string();
+    let mut candidate_settings = state.settings();
+    candidate_settings.onboarded = true;
+    if !pack.is_empty() {
+        candidate_settings.active_pack = pack.clone();
+    }
+    candidate_settings
+        .validate()
+        .map_err(|errs| errs.join("; "))?;
+
     let drafts: Vec<MessageDraft> = [
         (MessageKind::Goal, &input.goal),
         (MessageKind::Gratitude, &input.gratitude),
@@ -211,7 +235,6 @@ pub fn apply_onboarding(state: &AppState, input: &OnboardingInput) -> Result<(),
         })?;
     }
 
-    let pack = input.active_pack.trim().to_string();
     state
         .update_settings(|s| {
             s.onboarded = true;
@@ -374,5 +397,43 @@ mod tests {
         assert_eq!(view.messages.len(), 1);
         assert_eq!(view.messages[0].kind, MessageKind::Goal);
         assert_eq!(view.messages[0].text, "Launch Tospu");
+    }
+
+    #[test]
+    fn broken_settings_file_is_left_untouched_and_updates_are_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+        fs::write(&settings_path, "{ broken settings").unwrap();
+
+        let state = AppState::load(test_paths(dir.path()));
+        assert!(!state.settings_writable());
+        let res = state.update_settings(|s| s.quiet_mode = true);
+        assert!(res.is_err());
+        assert_eq!(
+            fs::read_to_string(&settings_path).unwrap(),
+            "{ broken settings"
+        );
+    }
+
+    #[test]
+    fn onboarding_does_not_add_messages_when_settings_are_broken() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("settings.json"), "{ broken").unwrap();
+        fs::write(
+            dir.path().join("content.json"),
+            r#"{"version":2,"messages":[]}"#,
+        )
+        .unwrap();
+
+        let state = AppState::load(test_paths(dir.path()));
+        let input = OnboardingInput {
+            goal: Some("Should not be added".into()),
+            gratitude: None,
+            proud: None,
+            active_pack: "mochi".into(),
+            launch_at_login: true,
+        };
+        assert!(apply_onboarding(&state, &input).is_err());
+        assert!(state.settings_view(false).messages.is_empty());
     }
 }

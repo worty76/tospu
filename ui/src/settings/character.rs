@@ -89,14 +89,23 @@ pub fn CharacterTab() -> impl IntoView {
             return;
         };
         next.active_pack = pack_id;
-        store.run(async move {
-            ipc::invoke_vec_err::<_, Settings>(
-                "save_settings",
-                &SaveSettingsArgs { settings: next },
-            )
-            .await
-            .map_err(|errs| errs.join("; "))
-        });
+        store.run_then(
+            async move {
+                ipc::invoke_vec_err::<_, Settings>(
+                    "save_settings",
+                    &SaveSettingsArgs { settings: next },
+                )
+                .await
+                .map_err(|errs| errs.join("; "))
+            },
+            move |saved| {
+                store.view.update(|opt| {
+                    if let Some(v) = opt {
+                        v.settings = saved;
+                    }
+                });
+            },
+        );
     };
 
     view! {

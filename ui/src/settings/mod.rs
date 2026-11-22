@@ -33,7 +33,7 @@ pub fn SettingsApp() -> impl IntoView {
         store
             .view
             .get()
-            .map(|v| !v.settings.onboarded)
+            .map(|v| !v.settings.onboarded && v.settings_writable)
             .unwrap_or(false)
     };
 

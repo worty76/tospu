@@ -105,3 +105,9 @@ Show one now · Quiet mode ✓ · Character ▸ · ── · Settings… · ─�
 ## Left to the builder
 
 The exact CSS look (it should match phase 1's bubble style, be calm and readable, and use system fonts), the minor version of Leptos (use what `create-tauri-app`'s Leptos template pins), and any copy not quoted here.
+
+## Post-Phase-2 additions
+
+- **Interval scheduling (`Every N minutes`):** Settings → Schedule switches between `Daily times` (`slots` + `jitterMinutes`) and `Every N minutes` (`interval.everyMinutes` 1–1440, optional `interval.kind` or rotating across all 4 kinds). Interval mode respects quiet hours and disables random shift.
+- **Multi-monitor popup screen:** Settings → General lets users pick `Follow cursor` (default), `Primary display`, or a specific connected monitor by name (falling back to Primary if disconnected).
+- **Dynamic tray icon:** The menu bar icon tracks the active character's `preview.png` (cropped and scaled to 44×44), falling back to the bundled tray icon if unavailable.

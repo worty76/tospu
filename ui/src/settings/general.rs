@@ -46,14 +46,23 @@ pub fn GeneralTab() -> impl IntoView {
             return;
         };
         mutate(&mut next, val);
-        store.run(async move {
-            ipc::invoke_vec_err::<_, Settings>(
-                "save_settings",
-                &SaveSettingsArgs { settings: next },
-            )
-            .await
-            .map_err(|errs| errs.join("; "))
-        });
+        store.run_then(
+            async move {
+                ipc::invoke_vec_err::<_, Settings>(
+                    "save_settings",
+                    &SaveSettingsArgs { settings: next },
+                )
+                .await
+                .map_err(|errs| errs.join("; "))
+            },
+            move |saved| {
+                store.view.update(|opt| {
+                    if let Some(v) = opt {
+                        v.settings = saved;
+                    }
+                });
+            },
+        );
     };
 
     let launch_at_login = move || store.view.get().map(|v| v.launch_at_login).unwrap_or(false);
@@ -94,14 +103,23 @@ pub fn GeneralTab() -> impl IntoView {
             return;
         };
         next.display_target = target;
-        store.run(async move {
-            ipc::invoke_vec_err::<_, Settings>(
-                "save_settings",
-                &SaveSettingsArgs { settings: next },
-            )
-            .await
-            .map_err(|errs| errs.join("; "))
-        });
+        store.run_then(
+            async move {
+                ipc::invoke_vec_err::<_, Settings>(
+                    "save_settings",
+                    &SaveSettingsArgs { settings: next },
+                )
+                .await
+                .map_err(|errs| errs.join("; "))
+            },
+            move |saved| {
+                store.view.update(|opt| {
+                    if let Some(v) = opt {
+                        v.settings = saved;
+                    }
+                });
+            },
+        );
     };
 
     view! {
