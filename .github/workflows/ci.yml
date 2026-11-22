@@ -18,7 +18,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: jetli/trunk-action@v0.5
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
 
       - name: Build UI bundle
         run: trunk build --config ui/Trunk.toml
