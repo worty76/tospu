@@ -119,6 +119,17 @@ pub fn CharacterTab() -> impl IntoView {
             <div class="button-row">
                 <button
                     type="button"
+                    class="btn primary"
+                    on:click=move |_| {
+                        store.run(async {
+                            ipc::invoke::<_, ()>("show_test_popup", &EmptyArgs {}).await
+                        });
+                    }
+                >
+                    "Show a test popup"
+                </button>
+                <button
+                    type="button"
                     class="btn secondary"
                     on:click=move |_| {
                         store.run(async {
