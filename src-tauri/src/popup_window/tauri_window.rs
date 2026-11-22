@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{Monitor, PhysicalPosition, WebviewWindow};
+use tauri::{LogicalPosition, LogicalSize, Monitor, WebviewWindow};
 use tospu_core::{DisplayTarget, MonitorInfo};
 
 use super::PopupWindow;
@@ -33,12 +33,38 @@ impl TauriPopupWindow {
         }
     }
 
+    /// Cursor position in the coordinate space expected by `monitor_from_point`
+    /// and logical screen points on macOS.
+    ///
+    /// On macOS, `tao::cursor_position()` multiplies logical screen points by
+    /// `primary_monitor().scale_factor()`, whereas `monitor_from_point()`
+    /// compares against `CGDisplayBounds` in logical points.
+    fn cursor_point_for_monitor(&self) -> Option<(f64, f64)> {
+        let p = self.window.cursor_position().ok()?;
+        #[cfg(target_os = "macos")]
+        {
+            let scale = self
+                .window
+                .primary_monitor()
+                .ok()
+                .flatten()
+                .map(|m| m.scale_factor())
+                .unwrap_or(1.0)
+                .max(1.0);
+            Some((p.x / scale, p.y / scale))
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            Some((p.x, p.y))
+        }
+    }
+
     fn pick_monitor(&self, target: &DisplayTarget) -> tauri::Result<Option<Monitor>> {
         match target {
             DisplayTarget::Cursor => {
-                let by_cursor = match self.window.cursor_position() {
-                    Ok(p) => self.window.monitor_from_point(p.x, p.y)?,
-                    Err(_) => None,
+                let by_cursor = match self.cursor_point_for_monitor() {
+                    Some((x, y)) => self.window.monitor_from_point(x, y)?,
+                    None => None,
                 };
                 Ok(by_cursor.or(self.window.primary_monitor()?))
             }
@@ -60,12 +86,17 @@ impl TauriPopupWindow {
         let Some(monitor) = self.pick_monitor(target)? else {
             return Ok(());
         };
+        let m_scale = monitor.scale_factor().max(1.0);
         let area = monitor.work_area();
-        let size = self.window.outer_size()?;
-        let margin = (MARGIN * monitor.scale_factor()) as i32;
-        let x = area.position.x + area.size.width as i32 - size.width as i32 - margin;
-        let y = area.position.y + area.size.height as i32 - size.height as i32 - margin;
-        self.window.set_position(PhysicalPosition::new(x, y))
+        let area_pos: LogicalPosition<f64> = area.position.to_logical(m_scale);
+        let area_size: LogicalSize<f64> = area.size.to_logical(m_scale);
+
+        let w_scale = self.window.scale_factor()?.max(1.0);
+        let win_size: LogicalSize<f64> = self.window.outer_size()?.to_logical(w_scale);
+
+        let x = area_pos.x + area_size.width - win_size.width - MARGIN;
+        let y = area_pos.y + area_size.height - win_size.height - MARGIN;
+        self.window.set_position(LogicalPosition::new(x, y))
     }
 }
 
@@ -98,13 +129,22 @@ impl PopupWindow for TauriPopupWindow {
     }
 
     fn cursor_in_window(&self) -> Option<(f64, f64)> {
-        let cursor = self.window.cursor_position().ok()?;
         let origin = self.window.inner_position().ok()?;
-        let scale = self.window.scale_factor().ok()?;
-        Some((
-            (cursor.x - origin.x as f64) / scale,
-            (cursor.y - origin.y as f64) / scale,
-        ))
+        let win_scale = self.window.scale_factor().ok()?.max(1.0);
+        #[cfg(target_os = "macos")]
+        {
+            let (cx, cy) = self.cursor_point_for_monitor()?;
+            let origin_logical: LogicalPosition<f64> = origin.to_logical(win_scale);
+            Some((cx - origin_logical.x, cy - origin_logical.y))
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let cursor = self.window.cursor_position().ok()?;
+            Some((
+                (cursor.x - origin.x as f64) / win_scale,
+                (cursor.y - origin.y as f64) / win_scale,
+            ))
+        }
     }
 
     fn monitors(&self) -> Vec<MonitorInfo> {
