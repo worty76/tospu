@@ -1,9 +1,9 @@
 mod ipc;
 mod popup;
-
-use leptos::prelude::*;
+mod settings;
 
 use crate::popup::PopupApp;
+use crate::settings::SettingsApp;
 
 fn current_view() -> String {
     web_sys::window()
@@ -15,7 +15,7 @@ fn current_view() -> String {
 
 fn main() {
     match current_view().as_str() {
-        "settings" => leptos::mount::mount_to_body(|| view! { <div class="settings-root"></div> }),
+        "settings" => leptos::mount::mount_to_body(SettingsApp),
         _ => leptos::mount::mount_to_body(PopupApp),
     }
 }
