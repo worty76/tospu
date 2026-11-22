@@ -1,50 +1,23 @@
-use std::fs;
-use std::path::PathBuf;
+use std::collections::BTreeMap;
 use std::sync::{Condvar, Mutex, MutexGuard};
 
-use serde::{Deserialize, Serialize};
-use tospu_core::{discover_packs, settings_store, Pack, PackScan, Settings};
+use tospu_core::{
+    discover_packs, settings_store, ContentStore, Message, MessageKind, Pack, PackScan, PackView,
+    Picker, Rect, Settings,
+};
 
+use crate::assets;
 use crate::paths::Paths;
 
-/// Area of the popup (logical px, relative to the window) that should take
-/// clicks. Everything else passes clicks through to the apps behind.
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
-pub struct Rect {
-    pub x: f64,
-    pub y: f64,
-    pub width: f64,
-    pub height: f64,
-}
-
-impl Rect {
-    pub fn contains(&self, x: f64, y: f64) -> bool {
-        x >= self.x && y >= self.y && x <= self.x + self.width && y <= self.y + self.height
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PackEntry {
-    pub id: String,
-    pub dir: PathBuf,
-    pub manifest_json: String,
-}
-
-/// Everything the front end needs to render a popup, read fresh each time.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Snapshot {
-    pub settings: Settings,
-    pub packs: Vec<PackEntry>,
-    pub content_json: Option<String>,
-    pub errors: Vec<String>,
-}
+const DEFAULT_CONTENT: &str = include_str!("../../defaults/content.json");
+const PICKER_HISTORY: usize = 3;
 
 struct Loaded {
     settings: Settings,
     scan: PackScan,
     settings_error: Option<String>,
+    content: ContentStore,
+    picker: Picker,
 }
 
 pub struct AppState {
@@ -58,7 +31,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn load(paths: Paths) -> Self {
-        let loaded = Self::read(&paths);
+        let loaded = Self::read(&paths, Picker::new(PICKER_HISTORY));
         Self {
             paths,
             loaded: Mutex::new(loaded),
@@ -68,12 +41,16 @@ impl AppState {
         }
     }
 
-    fn read(paths: &Paths) -> Loaded {
+    fn read(paths: &Paths, picker: Picker) -> Loaded {
         let (settings, settings_error) = settings_store::load_or_create(&paths.settings_file);
+        let scan = discover_packs(&paths.sprite_roots());
+        let content = ContentStore::open(&paths.content_file, DEFAULT_CONTENT);
         Loaded {
             settings,
-            scan: discover_packs(&paths.sprite_roots()),
+            scan,
             settings_error,
+            content,
+            picker,
         }
     }
 
@@ -89,9 +66,15 @@ impl AppState {
         self.lock().scan.packs.clone()
     }
 
-    /// Re-read settings.json and rescan sprite folders.
+    /// Re-read settings.json, content.json, and rescan sprite folders.
     pub fn reload(&self) {
-        *self.lock() = Self::read(&self.paths);
+        let mut l = self.lock();
+        let (settings, settings_error) = settings_store::load_or_create(&self.paths.settings_file);
+        l.settings = settings;
+        l.settings_error = settings_error;
+        l.scan = discover_packs(&self.paths.sprite_roots());
+        l.content.reload();
+        drop(l);
         self.bump();
     }
 
@@ -106,35 +89,17 @@ impl AppState {
         self.bump();
     }
 
-    pub fn snapshot(&self) -> Snapshot {
+    pub fn pick(&self, kind: MessageKind) -> Message {
+        let mut l = self.lock();
+        let Loaded {
+            content, picker, ..
+        } = &mut *l;
+        picker.next(kind, content.file(), &mut |n| fastrand::usize(..n))
+    }
+
+    pub fn pack_view(&self) -> Option<PackView> {
         let l = self.lock();
-        let (content_json, content_error) = match fs::read_to_string(&self.paths.content_file) {
-            Ok(text) => (Some(text), None),
-            Err(e) => (None, Some(format!("content.json: {e}"))),
-        };
-        let packs = l
-            .scan
-            .packs
-            .iter()
-            .map(|p| PackEntry {
-                id: p.id.clone(),
-                dir: p.dir.clone(),
-                manifest_json: serde_json::to_string(&p.manifest).expect("manifest serializes"),
-            })
-            .collect();
-        let errors = l
-            .settings_error
-            .iter()
-            .cloned()
-            .chain(l.scan.errors.iter().cloned())
-            .chain(content_error)
-            .collect();
-        Snapshot {
-            settings: l.settings.clone(),
-            packs,
-            content_json,
-            errors,
-        }
+        l.scan.choose(&l.settings.active_pack).map(pack_to_view)
     }
 
     pub fn generation(&self) -> MutexGuard<'_, u64> {
@@ -144,5 +109,70 @@ impl AppState {
     fn bump(&self) {
         *self.generation() += 1;
         self.changed.notify_all();
+    }
+}
+
+pub fn pack_to_view(pack: &Pack) -> PackView {
+    let sheet_urls: BTreeMap<String, String> = pack
+        .manifest
+        .sheet_names()
+        .into_iter()
+        .map(|sheet| (sheet.to_string(), assets::asset_url(&pack.dir.join(sheet))))
+        .collect();
+    PackView {
+        id: pack.id.clone(),
+        manifest: pack.manifest.clone(),
+        sheet_urls,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tospu_core::FALLBACK_LINE;
+
+    fn test_paths(dir: &std::path::Path) -> Paths {
+        Paths {
+            settings_file: dir.join("settings.json"),
+            content_file: dir.join("content.json"),
+            user_sprites: dir.join("sprites"),
+            bundled_sprites: None,
+        }
+    }
+
+    #[test]
+    fn pack_view_has_a_url_for_every_sheet() {
+        let dir = tempfile::tempdir().unwrap();
+        let pack_dir = dir.path().join("sprites/mochi");
+        fs::create_dir_all(&pack_dir).unwrap();
+        fs::write(
+            pack_dir.join("manifest.json"),
+            include_str!("../../sprites/mochi/manifest.json"),
+        )
+        .unwrap();
+
+        let state = AppState::load(test_paths(dir.path()));
+        let view = state.pack_view().expect("mochi pack should be found");
+        assert_eq!(view.id, "mochi");
+        for sheet in ["idle.png", "wave.png", "cheer.png", "sleep.png"] {
+            assert!(
+                view.sheet_urls.contains_key(sheet),
+                "missing url for {sheet}"
+            );
+        }
+    }
+
+    #[test]
+    fn pick_returns_fallback_with_empty_content() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("content.json"),
+            r#"{"version":2,"messages":[]}"#,
+        )
+        .unwrap();
+        let state = AppState::load(test_paths(dir.path()));
+        let msg = state.pick(MessageKind::Goal);
+        assert_eq!(msg.text, FALLBACK_LINE);
     }
 }

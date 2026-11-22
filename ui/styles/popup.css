@@ -19,11 +19,6 @@ body {
   cursor: default;
 }
 
-/* Browser preview only: a desk-like backdrop so you can see the sprite. */
-body.demo {
-  background: linear-gradient(160deg, #2b2f3a, #1d2029);
-}
-
 .stage {
   position: fixed;
   right: 12px;

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-popup-finished"
+description = "Enables the popup_finished command without any pre-configured scope."
+commands.allow = ["popup_finished"]
+
+[[permission]]
+identifier = "deny-popup-finished"
+description = "Denies the popup_finished command without any pre-configured scope."
+commands.deny = ["popup_finished"]

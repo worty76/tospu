@@ -1,3 +1,4 @@
+mod assets;
 mod commands;
 mod paths;
 mod popup;
@@ -30,7 +31,6 @@ pub fn run() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            commands::get_snapshot,
             commands::set_hit_rect,
             commands::popup_finished
         ])

@@ -2,24 +2,16 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 
-use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
-use tospu_core::MessageKind;
+use tospu_core::{MessageKind, ShowPayload};
 
 use crate::popup_window::PopupWindow;
 use crate::state::AppState;
 
 pub const SHOW_EVENT: &str = "tospu://show";
-pub const SNAPSHOT_CHANGED_EVENT: &str = "tospu://snapshot-changed";
 
 const HIT_TEST_VISIBLE: Duration = Duration::from_millis(50);
 const HIT_TEST_HIDDEN: Duration = Duration::from_millis(250);
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ShowPayload {
-    pub kind: MessageKind,
-    pub quiet: bool,
-}
 
 /// Owns the popup window and decides when it is shown.
 pub struct Popup {
@@ -41,9 +33,16 @@ impl Popup {
 }
 
 pub fn show(app: &AppHandle, kind: MessageKind) {
-    let quiet = app.state::<AppState>().settings().quiet_mode;
+    let state = app.state::<AppState>();
+    let settings = state.settings();
+    let payload = ShowPayload {
+        message: state.pick(kind),
+        quiet: settings.quiet_mode,
+        display_seconds: settings.display_seconds,
+        pack: state.pack_view(),
+    };
     app.state::<Popup>().window.show_at_corner();
-    let _ = app.emit_to("popup", SHOW_EVENT, ShowPayload { kind, quiet });
+    let _ = app.emit_to("popup", SHOW_EVENT, payload);
 }
 
 /// "Show one now" from the menu: rotate through the kinds.

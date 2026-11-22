@@ -17,5 +17,5 @@ pub use picker::{Picker, FALLBACK_LINE};
 pub use scheduler::{next_fire, Fire};
 pub use tospu_model::{
     ContentError, ContentFile, HhMm, Manifest, Message, MessageDraft, MessageItem, MessageKind,
-    QuietHours, Settings, Slot,
+    PackView, QuietHours, Rect, Settings, ShowPayload, Slot,
 };

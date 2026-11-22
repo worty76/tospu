@@ -1,14 +1,10 @@
-//! The IPC surface the popup page calls. Keep in sync with `src/ipc/contract.ts`.
+//! The IPC surface exposed to the popup window.
 
 use tauri::{AppHandle, State};
+use tospu_core::Rect;
 
 use crate::popup;
-use crate::state::{AppState, Rect, Snapshot};
-
-#[tauri::command]
-pub fn get_snapshot(state: State<'_, AppState>) -> Snapshot {
-    state.snapshot()
-}
+use crate::state::AppState;
 
 /// The front end reports where the sprite + bubble are, so only that area
 /// catches clicks. `None` makes the whole window click-through.

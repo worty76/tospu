@@ -1,10 +1,10 @@
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, Wry};
+use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_opener::OpenerExt;
 
-use crate::popup::{self, SNAPSHOT_CHANGED_EVENT};
+use crate::popup;
 use crate::state::AppState;
 
 const TRAY_ID: &str = "tospu";
@@ -27,7 +27,6 @@ pub fn refresh(app: &AppHandle) {
     if let (Some(tray), Ok(menu)) = (app.tray_by_id(TRAY_ID), build_menu(app)) {
         let _ = tray.set_menu(Some(menu));
     }
-    let _ = app.emit(SNAPSHOT_CHANGED_EVENT, ());
 }
 
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
