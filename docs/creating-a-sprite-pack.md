@@ -1,6 +1,6 @@
 # Creating a sprite pack
 
-A character is just a folder. Tospu finds it, validates it and lists it under **Character** in the menu bar. You don't need to change any code.
+A character is just a folder. Tospu discovers it, validates `manifest.json` in Rust, and lists it under **Settings → Character** and the **Character** menu bar submenu. You don't need to change any code.
 
 ```
 ~/Library/Application Support/io.github.worty76.tospu/sprites/
@@ -10,7 +10,7 @@ A character is just a folder. Tospu finds it, validates it and lists it under **
     preview.png
 ```
 
-Open this folder from the menu bar with **Open sprites folder**. Choose **Reload** after adding a pack. A pack in this folder replaces a bundled pack with the same id.
+Open this folder from **Settings → Character → Open sprites folder**, then click **Reload files** in **Settings → General**. A pack in your user folder overrides a bundled pack with the same `id`.
 
 ## Fast path: generate the art, then slice it
 
@@ -45,11 +45,6 @@ Rules for every frame:
 Pixel-art style, crisp edges.
 ```
 
-Why these rules? Your first sheets had three problems the slicer has to fix or work around:
-- In two of them, the first wave frame **hops in from outside the strip** and gets clipped. "Fully inside its frame" prevents that.
-- The **purple ground shadows** are removed automatically, but asking for no shadows keeps the outline clean.
-- **Effects far from the body** can spill into the neighbouring frame. The slicer warns you if that happens.
-
 ### 3. Slice it into a pack
 
 ```bash
@@ -57,49 +52,55 @@ python3 tools/slice_sprites.py my-sheet.png --id my-fox --name "Little Fox" \
   --out ~/Library/Application\ Support/io.github.worty76.tospu/sprites
 ```
 
-The slicer finds the magenta strips, removes the background and shadows, centres each frame, aligns all strips on one baseline, and writes the PNGs plus `manifest.json`. It prints a warning when art crosses a frame border. If you see one, regenerate the sheet or fix the PNG by hand.
+The slicer finds the magenta strips, removes the background and shadows, centres each frame, aligns all strips on one baseline, and writes the PNGs plus `manifest.json`. Requires `pip install pillow numpy scipy`. Other frame counts: `--frames 4,6,6,4`.
 
-Requires `pip install pillow numpy scipy`. Other frame counts: `--frames 4,6,6,4`.
+### 4. Test it in the app
 
-### 4. Preview it in a browser before installing
+Run `cargo tauri dev`, open **Settings → Character**, select your pack, and click **Show a test popup** (or **Show one now** from the menu bar).
 
-Put the pack in the repo's `sprites/` folder, run `npm run dev`, and open
-`http://localhost:1430/?pack=my-fox`. Add `&quiet=1` for quiet mode and `&seconds=4` to change how long it stays.
-
-## manifest.json reference
+## `manifest.json` reference
 
 ```json
 {
   "schemaVersion": 1,
-  "id": "my-fox",                       // must equal the folder name; a-z 0-9 -
+  "id": "my-fox",
   "name": "Little Fox",
   "author": "you",
   "license": "Personal use",
-  "renderer": "spritesheet",            // which renderer draws it
+  "renderer": "spritesheet",
   "frame": { "width": 198, "height": 170, "displayHeight": 120 },
-  "pixelated": false,                   // true = crisp nearest-neighbour scaling
+  "pixelated": false,
   "animations": {
-    "idle":  { "sheet": "idle.png",  "frames": 6, "fps": 8,  "loop": true },  // required
-    "enter": { "sheet": "wave.png",  "frames": 8, "fps": 12 },                // optional
-    "cheer": { "sheet": "cheer.png", "frames": 8, "fps": 12 },                // optional
-    "exit":  { "sheet": "sleep.png", "frames": 6, "fps": 8 }                  // optional
+    "idle":  { "sheet": "idle.png",  "frames": 6, "fps": 8,  "loop": true },
+    "enter": { "sheet": "wave.png",  "frames": 8, "fps": 12 },
+    "cheer": { "sheet": "cheer.png", "frames": 8, "fps": 12 },
+    "exit":  { "sheet": "sleep.png", "frames": 6, "fps": 8 }
   },
   "moods": { "goal": "cheer", "proud": "cheer", "gratitude": "idle", "quote": "idle" },
   "bubble": { "anchor": "top" }
 }
 ```
 
-(Real JSON has no comments. They're only here to explain the fields.)
+- Every sheet is **one horizontal row** of equal-size frames (`frame.width × frames` equals the image width).
+- Only `idle` is required. Missing `enter`, `cheer`, or `exit` animations fall back to `idle`.
+- `moods` maps each message kind (`goal`, `quote`, `gratitude`, `proud`) to an animation name (defaults to `idle`).
+- A broken pack is never fatal: it appears greyed out in **Settings → Character** and in **Settings → General → Problems** with the exact validation error.
 
-- Every sheet is **one horizontal row** of equal-size frames. `frame.width × frames` must equal the image width.
-- A missing animation **falls back to `idle`**, so the smallest valid pack is one sheet.
-- `moods` picks the animation that plays while each kind of message is on screen.
-- A broken pack is skipped, never fatal. The reason appears in the popup's dev console and in the browser preview console.
+## Validation rules & error messages
 
-## Adding a new animation format (developers)
+Manifest validation runs in Rust (`tospu_model::Manifest::parse` and `tospu_core::packs::discover_packs`) and reports errors as `<field>: <reason>`:
 
-1. Create `src/sprites/<format>-renderer.ts` implementing `SpriteRenderer` (`mount`, `play`, `stop`, `destroy`).
-2. Call `registerRenderer("<format>", (pack) => new YourRenderer(pack))` at the bottom of that file.
-3. Add `import "./<format>-renderer";` to `src/sprites/builtin.ts`.
+- `schemaVersion: must be 1`
+- `id: use lowercase letters, digits and dashes` (must match `^[a-z0-9][a-z0-9-]*$` and equal the folder name)
+- `name: must not be empty`
+- `renderer: unsupported renderer ...` (currently only `"spritesheet"`)
+- `frame.width` / `frame.height` / `frame.displayHeight`: must be greater than `0`
+- `animations.idle: missing field`
+- `animations.<name>.sheet: must be a file name inside the pack folder` (`.png`, `.webp`, or `.gif`, no `..` or path separators)
+- `animations.<name>.frames: must be greater than 0`
+- `animations.<name>.fps: must be between 0 and 60`
 
-Packs then opt in with `"renderer": "<format>"`. Nothing else changes.
+## Adding a new renderer (developers)
+
+1. Add a new variant to `RendererKind` in `crates/tospu-model/src/manifest.rs`.
+2. Add the corresponding Leptos component in `ui/src/popup/sprite.rs`.

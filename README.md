@@ -1,84 +1,68 @@
 # Tospu
 
-A tiny, private desktop companion. A few times a day a cute sprite hops into the corner of your screen and reminds you of your **big goals**, a **quote** to live by, something to be **grateful** for, or why you should be **proud**. Then it falls asleep and disappears.
+A tiny, private desktop companion written entirely in Rust (Tauri 2 + Leptos/WASM). A few times a day a cute sprite hops into the corner of your screen with one of your **big goals**, a **quote**, something you're **grateful** for, or something to be **proud** of—then falls asleep and disappears.
 
-- **Private by design.** Quiet mode (`⌘⇧Y`, or from the menu bar) shows only "Keep going."; click to reveal the real message.
-- **Never in your way.** It doesn't take focus, clicks pass through everywhere except the sprite and bubble, and it stays quiet at night.
-- **Swap characters any time.** A character is a folder of PNGs plus a `manifest.json`. See [docs/creating-a-sprite-pack.md](docs/creating-a-sprite-pack.md).
+<!-- Screenshot placeholder: add a screenshot of the popup and Settings window here -->
 
-## Run it
+## Highlights
 
-Requirements: Node 20+, Rust (stable), and Xcode Command Line Tools on macOS.
+- **Private by design.**
+  - **Quiet mode** (`⌘⇧Y` on macOS, `Ctrl+Shift+Y` elsewhere, or from the menu bar) shows only `"Keep going."` until you click to reveal the real message.
+  - **Privacy blur** (on by default) blurs message text in the Settings window until you hover or focus a row.
+  - **100% local.** All messages and settings stay in plain JSON files on your machine—no accounts, no telemetry, no network calls.
+- **Never in your way.** The popup never steals keyboard focus, clicks pass through everywhere outside the sprite and speech bubble, and quiet hours keep it silent overnight.
+- **Easy to manage.** Open **Settings…** from the menu bar to manage messages, schedule, character packs, launch at login, and privacy options.
+- **Swappable characters.** Drop a folder of sprite sheets plus a `manifest.json` into your sprites folder. See [docs/creating-a-sprite-pack.md](docs/creating-a-sprite-pack.md).
+
+## Prerequisites
+
+- Rust stable (edition 2021) + Xcode Command Line Tools on macOS
+- WebAssembly target, `trunk`, and `tauri-cli`:
 
 ```bash
-npm install
-npm run tauri dev       # run the app (menu bar icon appears; try "Show one now")
-npm run tauri build     # build Tospu.app / .dmg into src-tauri/target/release/bundle
+rustup target add wasm32-unknown-unknown
+cargo install trunk --locked
+cargo install tauri-cli --version "^2" --locked
 ```
 
-To work on sprites or styling without the app, run `npm run dev` and open http://localhost:1430/?pack=mochi-fluffy. This loops popups in the browser.
+No Node.js or npm is required.
 
-## Make it yours
+## Run and build
 
-From the menu bar icon:
+```bash
+cargo tauri dev     # run in development (serves UI on http://localhost:1430)
+cargo tauri build   # build Tospu.app / .dmg into target/release/bundle
+```
 
-| Menu item | Opens |
+## Where your data lives
+
+Tospu stores `settings.json`, `content.json`, and user `sprites/` in your OS application data directory:
+
+| OS | Path |
 |---|---|
-| Edit goals & quotes… | `content.json`: goals, quotes, gratitude, proud lines |
-| Edit schedule… | `settings.json`: popup times, jitter, quiet hours, display time |
-| Open sprites folder | where your own character packs go |
-| Reload | re-reads everything after you edit |
+| macOS | `~/Library/Application Support/io.github.worty76.tospu/` |
+| Linux | `~/.local/share/io.github.worty76.tospu/` |
+| Windows | `%APPDATA%\io.github.worty76.tospu\` |
 
-Files live in `~/Library/Application Support/io.github.worty76.tospu/`. Changes to `content.json` apply on the next popup.
+On first launch, if legacy data exists from the earlier Yub build (`dev.yub.companion`), Tospu copies it over once without deleting the original folder. If `content.json` or `settings.json` fails to parse, Tospu never overwrites it—fix the file and click **Reload files** in **Settings → General**.
 
-`settings.json` example:
-```json
-{
-  "slots": [
-    { "time": "09:00", "kind": "goal" },
-    { "time": "14:00", "kind": "quote" },
-    { "time": "21:00", "kind": "gratitude" }
-  ],
-  "jitterMinutes": 10,
-  "quietHours": { "start": "23:00", "end": "07:30" },
-  "quietMode": false,
-  "activePack": "mochi",
-  "displaySeconds": 8
-}
-```
-`kind` is one of `goal`, `quote`, `gratitude` or `proud`. Set `"quietHours": null` to disable quiet hours.
-
-## How it's built
+## Architecture
 
 ```
-crates/tospu-core           pure Rust: settings, scheduler, pack discovery (unit tested)
-src-tauri/src               Tauri shell: tray menu, popup window, scheduler thread, IPC
-  popup_window/             the ONLY OS-specific layer (PopupWindow trait)
-src/domain                  shared types
-src/sprites                 manifest schema, renderer registry, sprite-sheet renderer
-src/content                 content schema + no-repeat picker (ContentSource interface)
-src/popup                   popup lifecycle + speech bubble
-tools/slice_sprites.py      generated sheet → sprite pack
-sprites/                    bundled packs: mochi, mochi-bounce, mochi-fluffy
+crates/tospu-model   serde types & pure logic (native + wasm32): settings, content v2, manifest, anim
+crates/tospu-core    native core: atomic writes, settings/content stores, pack scan, scheduler, picker
+src-tauri            Tauri 2 shell: popup & settings windows, tray, global shortcut, autostart, IPC
+ui                   Leptos 0.8 CSR app (wasm32, built with trunk): ?view=popup and ?view=settings
+sprites/             bundled character packs (mochi, mochi-bounce, mochi-fluffy)
+tools/               sprite-sheet slicer (Python)
 ```
 
-Extension points, all add-only:
-- **New character:** add a folder.
-- **New animation format:** add a `SpriteRenderer` and one import in `src/sprites/builtin.ts`.
-- **New content source** (remote, AI): implement `ContentSource`.
-- **New OS behaviour:** implement `PopupWindow`.
-
-## Tests
+## Checks & tests
 
 ```bash
-npm test                                   # TypeScript (Vitest)
-cd src-tauri && cargo test --workspace     # Rust core
-python3 -m pytest tools/tests              # sprite slicer
+trunk build --config ui/Trunk.toml
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy -p tospu-ui --target wasm32-unknown-unknown -- -D warnings
+cargo test --workspace
 ```
-
-## Known limits (v1)
-
-- Tested to compile on Linux. **Not yet run on a real Mac**, so the first job is checking that the see-through popup stays on top of full-screen apps and across Spaces.
-- Full-screen/meeting detection isn't implemented yet (`PopupWindow::foreground_is_fullscreen` returns `false`), so a popup can appear during a presentation. Use quiet mode for now.
-- Windows and Linux use the same generic window code but aren't tested.
-- The menu bar panel that shows all goals at a glance is planned for v1.1.

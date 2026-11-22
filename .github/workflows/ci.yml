@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: jetli/trunk-action@v0.5
+
+      - name: Build UI bundle
+        run: trunk build --config ui/Trunk.toml
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy (native workspace)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Clippy (wasm UI)
+        run: cargo clippy -p tospu-ui --target wasm32-unknown-unknown -- -D warnings
+
+      - name: Run tests
+        run: cargo test --workspace
