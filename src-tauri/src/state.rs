@@ -115,6 +115,13 @@ impl AppState {
         l.scan.choose(&l.settings.active_pack).map(pack_to_view)
     }
 
+    pub fn active_pack_dir(&self) -> Option<std::path::PathBuf> {
+        let l = self.lock();
+        l.scan
+            .choose(&l.settings.active_pack)
+            .map(|p| p.dir.clone())
+    }
+
     pub fn settings_view(&self, launch_at_login: bool) -> SettingsView {
         let l = self.lock();
         let mut packs: Vec<PackSummary> = l
