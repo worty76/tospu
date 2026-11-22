@@ -1,10 +1,13 @@
 //! Pure serde types and logic shared between native backend and wasm UI.
 
+pub mod anim;
 pub mod content;
 pub mod kind;
 pub mod manifest;
 pub mod settings;
 pub mod time;
+
+pub use anim::{typed, Effect, FrameAt, FrameClock, Phase, PopupTimeline, TYPE_MS_PER_GRAPHEME};
 
 pub use content::{
     ContentError, ContentFile, Message, MessageDraft, MessageItem, MAX_AUTHOR_CHARS, MAX_MESSAGES,
