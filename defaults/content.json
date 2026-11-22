@@ -1,30 +1,63 @@
 {
-  "goals": [
+  "version": 2,
+  "messages": [
     {
-      "title": "Build a system that serves 100k users"
+      "id": "default-q1",
+      "kind": "quote",
+      "text": "Small steps every day add up to big results.",
+      "enabled": true
     },
     {
-      "title": "Master Go internals and distributed systems"
-    }
-  ],
-  "quotes": [
-    {
-      "text": "Small steps every day add up to big results."
-    },
-    {
+      "id": "default-q2",
+      "kind": "quote",
       "text": "We suffer more often in imagination than in reality.",
-      "author": "Seneca"
+      "author": "Seneca",
+      "enabled": true
     },
     {
-      "text": "The best time to plant a tree was 20 years ago. The second best time is now."
+      "id": "default-q3",
+      "kind": "quote",
+      "text": "The best time to plant a tree was 20 years ago. The second best time is now.",
+      "enabled": true
+    },
+    {
+      "id": "default-q4",
+      "kind": "quote",
+      "text": "You do not rise to the level of your goals. You fall to the level of your systems.",
+      "author": "James Clear",
+      "enabled": true
+    },
+    {
+      "id": "default-q5",
+      "kind": "quote",
+      "text": "It does not matter how slowly you go as long as you do not stop.",
+      "author": "Confucius",
+      "enabled": true
+    },
+    {
+      "id": "default-q6",
+      "kind": "quote",
+      "text": "What you do today can improve all your tomorrows.",
+      "author": "Ralph Marston",
+      "enabled": true
+    },
+    {
+      "id": "default-p1",
+      "kind": "proud",
+      "text": "You kept going on the hard days. That counts.",
+      "enabled": true
+    },
+    {
+      "id": "default-p2",
+      "kind": "proud",
+      "text": "Look how far you have come this year.",
+      "enabled": true
+    },
+    {
+      "id": "default-p3",
+      "kind": "proud",
+      "text": "You showed up today, even when it wasn't easy.",
+      "enabled": true
     }
-  ],
-  "gratitude": [
-    "a healthy body that carries me through the day",
-    "people who believe in me"
-  ],
-  "proud": [
-    "You kept going on the hard days. That counts.",
-    "Look how far you have come this year."
   ]
 }

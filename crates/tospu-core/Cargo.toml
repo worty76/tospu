@@ -7,6 +7,7 @@ description = "Pure logic for Tospu: settings, scheduling, sprite pack discovery
 [dependencies]
 tospu-model = { path = "../tospu-model" }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+fastrand = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
