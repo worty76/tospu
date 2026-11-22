@@ -11,6 +11,7 @@ pub mod packs;
 pub mod picker;
 pub mod scheduler;
 pub mod settings_store;
+pub mod update;
 
 pub use content_store::{new_id, ContentStore};
 pub use describe::describe_next;
@@ -20,5 +21,5 @@ pub use scheduler::{next_fire, Fire};
 pub use tospu_model::{
     ContentError, ContentFile, DisplayTarget, HhMm, IntervalSchedule, Manifest, Message,
     MessageDraft, MessageItem, MessageKind, MonitorInfo, OnboardingInput, PackSummary, PackView,
-    QuietHours, Rect, ScheduleMode, Settings, SettingsView, ShowPayload, Slot,
+    QuietHours, Rect, ScheduleMode, Settings, SettingsView, ShowPayload, Slot, UpdateInfo,
 };

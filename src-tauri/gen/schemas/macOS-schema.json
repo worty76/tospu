@@ -351,6 +351,12 @@
           "markdownDescription": "Enables the add_message command without any pre-configured scope."
         },
         {
+          "description": "Enables the check_for_updates command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-check-for-updates",
+          "markdownDescription": "Enables the check_for_updates command without any pre-configured scope."
+        },
+        {
           "description": "Enables the delete_message command without any pre-configured scope.",
           "type": "string",
           "const": "allow-delete-message",
@@ -379,6 +385,12 @@
           "type": "string",
           "const": "allow-open-pack-guide",
           "markdownDescription": "Enables the open_pack_guide command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_release_page command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-release-page",
+          "markdownDescription": "Enables the open_release_page command without any pre-configured scope."
         },
         {
           "description": "Enables the open_sprites_folder command without any pre-configured scope.",
@@ -435,6 +447,12 @@
           "markdownDescription": "Denies the add_message command without any pre-configured scope."
         },
         {
+          "description": "Denies the check_for_updates command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-check-for-updates",
+          "markdownDescription": "Denies the check_for_updates command without any pre-configured scope."
+        },
+        {
           "description": "Denies the delete_message command without any pre-configured scope.",
           "type": "string",
           "const": "deny-delete-message",
@@ -463,6 +481,12 @@
           "type": "string",
           "const": "deny-open-pack-guide",
           "markdownDescription": "Denies the open_pack_guide command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_release_page command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-release-page",
+          "markdownDescription": "Denies the open_release_page command without any pre-configured scope."
         },
         {
           "description": "Denies the open_sprites_folder command without any pre-configured scope.",

@@ -16,6 +16,8 @@
     "allow-open-sprites-folder",
     "allow-open-pack-guide",
     "allow-reload-files",
-    "allow-finish-onboarding"
+    "allow-finish-onboarding",
+    "allow-check-for-updates",
+    "allow-open-release-page"
   ]
 }

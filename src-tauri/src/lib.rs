@@ -51,6 +51,8 @@ pub fn run() {
             commands::open_pack_guide,
             commands::reload_files,
             commands::finish_onboarding,
+            commands::check_for_updates,
+            commands::open_release_page,
         ])
         .setup(|app| {
             setup(app)?;

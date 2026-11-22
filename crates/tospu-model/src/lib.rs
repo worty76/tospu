@@ -21,4 +21,5 @@ pub use settings::{DisplayTarget, IntervalSchedule, QuietHours, ScheduleMode, Se
 pub use time::HhMm;
 pub use wire::{
     MonitorInfo, OnboardingInput, PackSummary, PackView, Rect, SettingsView, ShowPayload,
+    UpdateInfo,
 };

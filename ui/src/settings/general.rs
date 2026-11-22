@@ -1,9 +1,15 @@
 use leptos::prelude::*;
 use serde::Serialize;
-use tospu_model::{DisplayTarget, Settings};
+use tospu_model::{DisplayTarget, Settings, UpdateInfo};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::ipc;
 use crate::settings::store::{EmptyArgs, Store};
+
+#[derive(Serialize)]
+struct OpenReleaseArgs {
+    url: String,
+}
 
 const NAMED_PREFIX: &str = "named:";
 
@@ -90,6 +96,8 @@ pub fn GeneralTab() -> impl IntoView {
     let problems = move || store.view.get().map(|v| v.problems).unwrap_or_default();
     let version = move || store.view.get().map(|v| v.version).unwrap_or_default();
     let monitors = move || store.view.get().map(|v| v.monitors).unwrap_or_default();
+    let checking_update = RwSignal::new(false);
+    let update_result = RwSignal::new(None::<Result<UpdateInfo, String>>);
     let display_target = move || {
         store
             .view
@@ -310,6 +318,79 @@ pub fn GeneralTab() -> impl IntoView {
                     })
                 }
             }}
+
+            <div class="card">
+                <div class="control-row">
+                    <div>
+                        <h3>"Updates"</h3>
+                        <p class="hint">
+                            {move || format!("Current version: v{}", version())}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn secondary"
+                        disabled=move || checking_update.get()
+                        on:click=move |_| {
+                            if checking_update.get_untracked() {
+                                return;
+                            }
+                            checking_update.set(true);
+                            update_result.set(None);
+                            spawn_local(async move {
+                                let res = ipc::invoke::<_, UpdateInfo>(
+                                    "check_for_updates",
+                                    &EmptyArgs {},
+                                )
+                                .await;
+                                update_result.set(Some(res));
+                                checking_update.set(false);
+                            });
+                        }
+                    >
+                        {move || if checking_update.get() { "Checking…" } else { "Check for updates" }}
+                    </button>
+                </div>
+
+                {move || {
+                    update_result.get().map(|res| match res {
+                        Ok(info) if info.update_available => {
+                            let url = info.release_url.clone();
+                            view! {
+                                <div class="update-status">
+                                    <span>
+                                        {format!("Update available: v{}", info.latest_version)}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="btn primary small"
+                                        on:click=move |_| {
+                                            let url = url.clone();
+                                            store.run(async move {
+                                                ipc::invoke::<_, ()>(
+                                                    "open_release_page",
+                                                    &OpenReleaseArgs { url },
+                                                )
+                                                .await
+                                            });
+                                        }
+                                    >
+                                        "Download"
+                                    </button>
+                                </div>
+                            }
+                            .into_any()
+                        }
+                        Ok(info) => view! {
+                            <p class="hint update-up-to-date">
+                                {format!("You're up to date (v{}).", info.current_version)}
+                            </p>
+                        }
+                        .into_any(),
+                        Err(err) => view! { <p class="inline-error">{err}</p> }.into_any(),
+                    })
+                }}
+            </div>
 
             <footer class="version-footer">
                 {move || format!("Tospu {}", version())}

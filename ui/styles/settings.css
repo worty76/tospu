@@ -710,3 +710,18 @@ select:focus-visible,
   gap: 6px;
   margin-top: 10px;
 }
+
+.update-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-weight: 550;
+}
+
+.update-up-to-date {
+  margin-top: 8px;
+}

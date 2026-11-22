@@ -3,8 +3,12 @@
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_opener::OpenerExt;
+use tospu_core::update::{
+    parse_github_release, ALLOWED_RELEASE_PREFIX, RELEASES_API_URL, RELEASES_PAGE_URL,
+};
 use tospu_core::{
     new_id, MessageDraft, MessageItem, MessageKind, OnboardingInput, Rect, Settings, SettingsView,
+    UpdateInfo,
 };
 
 use crate::popup::{self, Popup};
@@ -162,4 +166,46 @@ pub fn finish_onboarding(
     settings_window::close(&app);
     popup::show(&app, MessageKind::Goal);
     Ok(())
+}
+
+#[tauri::command]
+pub async fn check_for_updates() -> Result<UpdateInfo, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        let user_agent = format!("Tospu/{current}");
+        let res = ureq::get(RELEASES_API_URL)
+            .header("User-Agent", &user_agent)
+            .header("Accept", "application/vnd.github+json")
+            .call();
+
+        match res {
+            Ok(mut response) => {
+                let body = response
+                    .body_mut()
+                    .read_to_string()
+                    .map_err(|e| format!("could not read release response: {e}"))?;
+                parse_github_release(&body, &current)
+            }
+            Err(ureq::Error::StatusCode(404)) => Ok(UpdateInfo {
+                current_version: current.clone(),
+                latest_version: current,
+                update_available: false,
+                release_url: RELEASES_PAGE_URL.to_string(),
+                notes: None,
+            }),
+            Err(e) => Err(format!("could not check for updates: {e}")),
+        }
+    })
+    .await
+    .map_err(|e| format!("update check failed: {e}"))?
+}
+
+#[tauri::command]
+pub fn open_release_page(app: AppHandle, url: String) -> Result<(), String> {
+    if !url.starts_with(ALLOWED_RELEASE_PREFIX) {
+        return Err("invalid release URL".into());
+    }
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|e| e.to_string())
 }

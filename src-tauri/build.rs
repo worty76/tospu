@@ -16,6 +16,8 @@ fn main() {
             "open_pack_guide",
             "reload_files",
             "finish_onboarding",
+            "check_for_updates",
+            "open_release_page",
         ]),
     ))
     .expect("failed to run tauri-build");
