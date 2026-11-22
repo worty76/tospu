@@ -20,6 +20,8 @@ A few times a day (or on any schedule you pick), a cute character pops into the 
 
 Download the latest app from [Releases](https://github.com/worty76/tospu/releases/latest) and drag **Tospu** into Applications.
 
+Tospu ships for macOS today. **Windows and Linux versions are coming soon.**
+
 Tospu is **not code-signed with an Apple Developer certificate yet**, so macOS blocks the first launch. To open it:
 
 1. Double-click Tospu. When macOS blocks it, click **Done**.
