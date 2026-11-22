@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-show-test-popup"
+description = "Enables the show_test_popup command without any pre-configured scope."
+commands.allow = ["show_test_popup"]
+
+[[permission]]
+identifier = "deny-show-test-popup"
+description = "Denies the show_test_popup command without any pre-configured scope."
+commands.deny = ["show_test_popup"]

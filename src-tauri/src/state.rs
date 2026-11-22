@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
 use std::sync::{Condvar, Mutex, MutexGuard};
 
+use chrono::Local;
 use tospu_core::{
-    discover_packs, settings_store, ContentStore, Message, MessageKind, Pack, PackScan, PackView,
-    Picker, Rect, Settings,
+    describe_next, discover_packs, new_id, next_fire, settings_store, ContentError, ContentFile,
+    ContentStore, Message, MessageDraft, MessageKind, OnboardingInput, Pack, PackScan, PackSummary,
+    PackView, Picker, Rect, Settings, SettingsView,
 };
 
 use crate::assets;
@@ -78,15 +80,26 @@ impl AppState {
         self.bump();
     }
 
-    /// Change settings in memory and on disk.
-    pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) {
+    /// Validate settings on a clone, save atomically, and bump scheduler generation on success.
+    pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) -> Result<Settings, Vec<String>> {
         let mut l = self.lock();
-        f(&mut l.settings);
-        l.settings_error = settings_store::save(&self.paths.settings_file, &l.settings)
-            .err()
-            .map(|e| format!("saving settings: {e}"));
+        let mut next = l.settings.clone();
+        f(&mut next);
+        next.validate()?;
+        settings_store::save(&self.paths.settings_file, &next)
+            .map_err(|e| vec![format!("saving settings: {e}")])?;
+        l.settings = next.clone();
+        l.settings_error = None;
         drop(l);
         self.bump();
+        Ok(next)
+    }
+
+    pub fn change_content<T>(
+        &self,
+        f: impl FnOnce(&mut ContentFile) -> Result<T, ContentError>,
+    ) -> Result<T, String> {
+        self.lock().content.change(f)
     }
 
     pub fn pick(&self, kind: MessageKind) -> Message {
@@ -102,6 +115,58 @@ impl AppState {
         l.scan.choose(&l.settings.active_pack).map(pack_to_view)
     }
 
+    pub fn settings_view(&self, launch_at_login: bool) -> SettingsView {
+        let l = self.lock();
+        let mut packs: Vec<PackSummary> = l
+            .scan
+            .packs
+            .iter()
+            .map(|p| PackSummary {
+                id: p.id.clone(),
+                name: p.manifest.name.clone(),
+                author: p.manifest.author.clone(),
+                view: Some(pack_to_view(p)),
+                error: None,
+            })
+            .chain(l.scan.broken.iter().map(|b| PackSummary {
+                id: b.id.clone(),
+                name: b.id.clone(),
+                author: None,
+                view: None,
+                error: Some(b.reason.clone()),
+            }))
+            .collect();
+        packs.sort_by(|a, b| a.id.cmp(&b.id));
+
+        let problems: Vec<String> = l
+            .settings_error
+            .iter()
+            .cloned()
+            .chain(l.content.problem().map(str::to_string))
+            .chain(l.scan.errors.iter().cloned())
+            .collect();
+
+        let now = Local::now().naive_local();
+        let next_popup = next_fire(now, &l.settings).map(|f| describe_next(now, f.at));
+
+        #[cfg(target_os = "macos")]
+        let shortcut_label = "⌘⇧Y".to_string();
+        #[cfg(not(target_os = "macos"))]
+        let shortcut_label = "Ctrl+Shift+Y".to_string();
+
+        SettingsView {
+            settings: l.settings.clone(),
+            messages: l.content.file().messages.clone(),
+            packs,
+            problems,
+            launch_at_login,
+            next_popup,
+            shortcut_label,
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            content_writable: l.content.problem().is_none(),
+        }
+    }
+
     pub fn generation(&self) -> MutexGuard<'_, u64> {
         self.generation.lock().unwrap_or_else(|e| e.into_inner())
     }
@@ -110,6 +175,45 @@ impl AppState {
         *self.generation() += 1;
         self.changed.notify_all();
     }
+}
+
+pub fn apply_onboarding(state: &AppState, input: &OnboardingInput) -> Result<(), String> {
+    let drafts: Vec<MessageDraft> = [
+        (MessageKind::Goal, &input.goal),
+        (MessageKind::Gratitude, &input.gratitude),
+        (MessageKind::Proud, &input.proud),
+    ]
+    .into_iter()
+    .filter_map(|(kind, opt)| {
+        let text = opt.as_deref()?.trim();
+        (!text.is_empty()).then(|| MessageDraft {
+            kind,
+            text: text.to_string(),
+            author: None,
+        })
+    })
+    .collect();
+
+    if !drafts.is_empty() {
+        state.change_content(|file| {
+            for draft in drafts {
+                file.add(draft, new_id())?;
+            }
+            Ok(())
+        })?;
+    }
+
+    let pack = input.active_pack.trim().to_string();
+    state
+        .update_settings(|s| {
+            s.onboarded = true;
+            if !pack.is_empty() {
+                s.active_pack = pack;
+            }
+        })
+        .map_err(|errs| errs.join("; "))?;
+
+    Ok(())
 }
 
 pub fn pack_to_view(pack: &Pack) -> PackView {
@@ -174,5 +278,93 @@ mod tests {
         let state = AppState::load(test_paths(dir.path()));
         let msg = state.pick(MessageKind::Goal);
         assert_eq!(msg.text, FALLBACK_LINE);
+    }
+
+    #[test]
+    fn update_settings_rejects_invalid_and_keeps_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::load(test_paths(dir.path()));
+        let before_disk = fs::read_to_string(dir.path().join("settings.json")).unwrap();
+        let before_gen = *state.generation();
+
+        let res = state.update_settings(|s| s.display_seconds = 1);
+        assert!(res.is_err());
+        assert_eq!(
+            fs::read_to_string(dir.path().join("settings.json")).unwrap(),
+            before_disk
+        );
+        assert_eq!(*state.generation(), before_gen);
+    }
+
+    #[test]
+    fn update_settings_bumps_generation() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::load(test_paths(dir.path()));
+        let before_gen = *state.generation();
+        state.update_settings(|s| s.display_seconds = 12).unwrap();
+        assert_eq!(*state.generation(), before_gen + 1);
+    }
+
+    #[test]
+    fn change_content_persists_and_view_reflects_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::load(test_paths(dir.path()));
+        state
+            .change_content(|f| {
+                f.add(
+                    MessageDraft {
+                        kind: MessageKind::Goal,
+                        text: "Ship Tospu".into(),
+                        author: None,
+                    },
+                    new_id(),
+                )
+                .cloned()
+            })
+            .unwrap();
+        let view = state.settings_view(false);
+        assert!(view.messages.iter().any(|m| m.text == "Ship Tospu"));
+    }
+
+    #[test]
+    fn settings_view_lists_broken_packs_with_reason() {
+        let dir = tempfile::tempdir().unwrap();
+        let bad = dir.path().join("sprites/broken-fox");
+        fs::create_dir_all(&bad).unwrap();
+        fs::write(bad.join("manifest.json"), "{ invalid").unwrap();
+
+        let state = AppState::load(test_paths(dir.path()));
+        let view = state.settings_view(false);
+        let summary = view
+            .packs
+            .iter()
+            .find(|p| p.id == "broken-fox")
+            .expect("broken pack listed");
+        assert!(summary.error.is_some());
+        assert!(summary.view.is_none());
+    }
+
+    #[test]
+    fn onboarding_adds_non_empty_lines_only_and_sets_onboarded() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("content.json"),
+            r#"{"version":2,"messages":[]}"#,
+        )
+        .unwrap();
+        let state = AppState::load(test_paths(dir.path()));
+        let input = OnboardingInput {
+            goal: Some("Launch Tospu".into()),
+            gratitude: Some("   ".into()),
+            proud: None,
+            active_pack: "mochi".into(),
+            launch_at_login: true,
+        };
+        apply_onboarding(&state, &input).unwrap();
+        let view = state.settings_view(true);
+        assert!(view.settings.onboarded);
+        assert_eq!(view.messages.len(), 1);
+        assert_eq!(view.messages[0].kind, MessageKind::Goal);
+        assert_eq!(view.messages[0].text, "Launch Tospu");
     }
 }

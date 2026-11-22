@@ -19,4 +19,4 @@ pub use manifest::{
 };
 pub use settings::{QuietHours, Settings, Slot};
 pub use time::HhMm;
-pub use wire::{PackView, Rect, ShowPayload};
+pub use wire::{OnboardingInput, PackSummary, PackView, Rect, SettingsView, ShowPayload};

@@ -2,8 +2,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::content::Message;
+use crate::content::{Message, MessageItem};
 use crate::manifest::Manifest;
+use crate::settings::Settings;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,4 +37,45 @@ impl Rect {
     pub fn contains(&self, x: f64, y: f64) -> bool {
         x >= self.x && y >= self.y && x <= self.x + self.width && y <= self.y + self.height
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackSummary {
+    pub id: String,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<PackView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsView {
+    pub settings: Settings,
+    pub messages: Vec<MessageItem>,
+    pub packs: Vec<PackSummary>,
+    pub problems: Vec<String>,
+    pub launch_at_login: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_popup: Option<String>,
+    pub shortcut_label: String,
+    pub version: String,
+    pub content_writable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OnboardingInput {
+    #[serde(default)]
+    pub goal: Option<String>,
+    #[serde(default)]
+    pub gratitude: Option<String>,
+    #[serde(default)]
+    pub proud: Option<String>,
+    pub active_pack: String,
+    pub launch_at_login: bool,
 }

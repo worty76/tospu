@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-sprites-folder"
+description = "Enables the open_sprites_folder command without any pre-configured scope."
+commands.allow = ["open_sprites_folder"]
+
+[[permission]]
+identifier = "deny-open-sprites-folder"
+description = "Denies the open_sprites_folder command without any pre-configured scope."
+commands.deny = ["open_sprites_folder"]

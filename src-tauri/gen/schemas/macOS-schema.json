@@ -345,10 +345,64 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the add_message command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-add-message",
+          "markdownDescription": "Enables the add_message command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_message command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-message",
+          "markdownDescription": "Enables the delete_message command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the finish_onboarding command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-finish-onboarding",
+          "markdownDescription": "Enables the finish_onboarding command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_settings_view command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-settings-view",
+          "markdownDescription": "Enables the get_settings_view command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_data_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-data-folder",
+          "markdownDescription": "Enables the open_data_folder command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_pack_guide command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-pack-guide",
+          "markdownDescription": "Enables the open_pack_guide command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_sprites_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-sprites-folder",
+          "markdownDescription": "Enables the open_sprites_folder command without any pre-configured scope."
+        },
+        {
           "description": "Enables the popup_finished command without any pre-configured scope.",
           "type": "string",
           "const": "allow-popup-finished",
           "markdownDescription": "Enables the popup_finished command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the reload_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-reload-files",
+          "markdownDescription": "Enables the reload_files command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-settings",
+          "markdownDescription": "Enables the save_settings command without any pre-configured scope."
         },
         {
           "description": "Enables the set_hit_rect command without any pre-configured scope.",
@@ -357,16 +411,148 @@
           "markdownDescription": "Enables the set_hit_rect command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_launch_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-launch-at-login",
+          "markdownDescription": "Enables the set_launch_at_login command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the show_test_popup command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-show-test-popup",
+          "markdownDescription": "Enables the show_test_popup command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_message command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-message",
+          "markdownDescription": "Enables the update_message command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the add_message command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-add-message",
+          "markdownDescription": "Denies the add_message command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_message command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-message",
+          "markdownDescription": "Denies the delete_message command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the finish_onboarding command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-finish-onboarding",
+          "markdownDescription": "Denies the finish_onboarding command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_settings_view command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-settings-view",
+          "markdownDescription": "Denies the get_settings_view command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_data_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-data-folder",
+          "markdownDescription": "Denies the open_data_folder command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_pack_guide command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-pack-guide",
+          "markdownDescription": "Denies the open_pack_guide command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_sprites_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-sprites-folder",
+          "markdownDescription": "Denies the open_sprites_folder command without any pre-configured scope."
+        },
+        {
           "description": "Denies the popup_finished command without any pre-configured scope.",
           "type": "string",
           "const": "deny-popup-finished",
           "markdownDescription": "Denies the popup_finished command without any pre-configured scope."
         },
         {
+          "description": "Denies the reload_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-reload-files",
+          "markdownDescription": "Denies the reload_files command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-settings",
+          "markdownDescription": "Denies the save_settings command without any pre-configured scope."
+        },
+        {
           "description": "Denies the set_hit_rect command without any pre-configured scope.",
           "type": "string",
           "const": "deny-set-hit-rect",
           "markdownDescription": "Denies the set_hit_rect command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_launch_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-launch-at-login",
+          "markdownDescription": "Denies the set_launch_at_login command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the show_test_popup command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-show-test-popup",
+          "markdownDescription": "Denies the show_test_popup command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_message command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-message",
+          "markdownDescription": "Denies the update_message command without any pre-configured scope."
+        },
+        {
+          "description": "This permission set configures if your\napplication can enable or disable auto\nstarting the application on boot.\n\n#### Granted Permissions\n\nIt allows all to check, enable and\ndisable the automatic start on boot.\n\n\n#### This default permission set includes:\n\n- `allow-enable`\n- `allow-disable`\n- `allow-is-enabled`",
+          "type": "string",
+          "const": "autostart:default",
+          "markdownDescription": "This permission set configures if your\napplication can enable or disable auto\nstarting the application on boot.\n\n#### Granted Permissions\n\nIt allows all to check, enable and\ndisable the automatic start on boot.\n\n\n#### This default permission set includes:\n\n- `allow-enable`\n- `allow-disable`\n- `allow-is-enabled`"
+        },
+        {
+          "description": "Enables the disable command without any pre-configured scope.",
+          "type": "string",
+          "const": "autostart:allow-disable",
+          "markdownDescription": "Enables the disable command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the enable command without any pre-configured scope.",
+          "type": "string",
+          "const": "autostart:allow-enable",
+          "markdownDescription": "Enables the enable command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the is_enabled command without any pre-configured scope.",
+          "type": "string",
+          "const": "autostart:allow-is-enabled",
+          "markdownDescription": "Enables the is_enabled command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the disable command without any pre-configured scope.",
+          "type": "string",
+          "const": "autostart:deny-disable",
+          "markdownDescription": "Denies the disable command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the enable command without any pre-configured scope.",
+          "type": "string",
+          "const": "autostart:deny-enable",
+          "markdownDescription": "Denies the enable command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the is_enabled command without any pre-configured scope.",
+          "type": "string",
+          "const": "autostart:deny-is-enabled",
+          "markdownDescription": "Denies the is_enabled command without any pre-configured scope."
         },
         {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
