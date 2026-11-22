@@ -16,6 +16,25 @@ A few times a day (or on any schedule you pick), a cute character pops into the 
 - **Your pace, your screen.** Pop up at specific times each day or every N minutes, and choose whether Tospu follows your cursor or stays on a specific monitor.
 - **Make it yours.** Add your own messages, switch characters anytime, or create your own character in minutes—your menu bar icon even changes to match your character.
 
+## Install (macOS)
+
+Download the latest app from [Releases](https://github.com/worty76/tospu/releases/latest) and drag **Tospu** into Applications.
+
+Tospu is **not code-signed with an Apple Developer certificate yet**, so macOS blocks the first launch. To open it:
+
+1. Double-click Tospu. When macOS blocks it, click **Done**.
+2. Open **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to "Tospu was blocked". Confirm with your password.
+
+You only need to do this once. On macOS 14 and earlier you can right-click the app and choose **Open** instead.
+
+If macOS says the app is "damaged", remove the download quarantine flag and open it again:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Tospu.app
+```
+
+If you would rather not bypass anything, you can build it from source yourself (see the end of this page).
+
 ## Using Tospu
 
 Tospu lives quietly in your menu bar. Click its icon to:

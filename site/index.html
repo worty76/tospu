@@ -260,6 +260,14 @@ kbd { font: 700 13px/1 var(--font); padding: 4px 7px; border-radius: 7px; backgr
 .faq summary::after { content: ""; flex: none; width: 24px; height: 24px; border-radius: 50%; background: #eef2f8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 7v10M7 12h10' stroke='%230d1626' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center/24px; transition: transform .25s ease; }
 .faq details[open] summary::after { transform: rotate(45deg); }
 .faq details p { margin-top: 10px; color: var(--ink-2); max-width: 60ch; }
+.faq .faq-body { margin-top: 10px; color: var(--ink-2); max-width: 60ch; }
+.faq .faq-body p { margin-top: 10px; }
+.faq .faq-body ol { margin: 10px 0 0 1.2em; display: grid; gap: 6px; }
+.faq > * { min-width: 0; }
+.faq details { min-width: 0; }
+.faq .faq-body pre { white-space: pre-wrap; word-break: break-all; margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: #eef2f8; box-shadow: 0 0 0 1px var(--line); overflow-x: auto; font-size: 13px; line-height: 1.5; }
+.faq .faq-body code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+.note-link { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 
 /* final cta */
 .final { position: relative; text-align: center; padding: 150px 0 120px; overflow: hidden; }
@@ -346,7 +354,7 @@ footer a { text-decoration: none; } footer nav a:hover { color: var(--ink); }
         </a>
         <a class="btn btn-light" href="https://github.com/worty76/tospu">View on GitHub</a>
       </div>
-      <p class="hero-note">Free for macOS. Your messages stay on your Mac.</p>
+      <p class="hero-note">Free for macOS. Your messages stay on your Mac. Not code-signed yet, so macOS asks you to approve it once. <a class="note-link" href="#unsigned">Here is how.</a></p>
 
       <div class="device">
         <div class="screen">
@@ -532,6 +540,15 @@ footer a { text-decoration: none; } footer nav a:hover { color: var(--ink); }
         <p class="lead" style="margin-top:16px">Something else? <a href="https://github.com/worty76/tospu/issues">Open an issue on GitHub.</a></p>
       </div>
       <div>
+        <details id="unsigned"><summary>macOS says it can’t verify Tospu. How do I open it?</summary><div class="faq-body"><p>Tospu is not signed with an Apple Developer certificate yet, so macOS blocks the first launch. The app is not hiding anything: the source is on GitHub, and you can build it yourself. To open the downloaded app, drag it into Applications, then:</p>
+<ol>
+<li>Double-click Tospu. When macOS blocks it, click <b>Done</b>.</li>
+<li>Open <b>System Settings → Privacy &amp; Security</b> and scroll to <b>Security</b>.</li>
+<li>Click <b>Open Anyway</b> next to “Tospu was blocked”, then confirm with your password.</li>
+</ol>
+<p>You only do this once. On macOS 14 and earlier, you can instead right-click the app and choose <b>Open</b>.</p>
+<p>If macOS says the app is “damaged”, run this in Terminal, then open it again:</p>
+<pre><code>xattr -dr com.apple.quarantine /Applications/Tospu.app</code></pre></div></details>
         <details><summary>Is Tospu free?</summary><p>Yes. Download it from the releases page, or build it yourself from the source on GitHub.</p></details>
         <details><summary>Which computers does it run on?</summary><p>macOS today. The code is written with Windows and Linux in mind, and those builds are on the way.</p></details>
         <details><summary>Does it send my messages anywhere?</summary><p>No. Your messages and settings are plain files in a folder on your Mac. The only network request is the update check, and only when you ask for it.</p></details>
@@ -550,7 +567,7 @@ footer a { text-decoration: none; } footer nav a:hover { color: var(--ink); }
         <span class="sprite" data-loop="watermelon-dog" data-h="100"></span>
       </div>
       <h2 id="final-title">Give your goals a friend.</h2>
-      <p class="lead">Free for macOS. Set up in a minute.</p>
+      <p class="lead">Free for macOS. Set up in a minute. Not code-signed yet, so you approve it once. <a class="note-link" href="#unsigned">Here is how.</a></p>
       <a class="btn btn-dark" href="https://github.com/worty76/tospu/releases/latest">Download for macOS</a>
     </div>
   </section>
@@ -728,6 +745,16 @@ footer a { text-decoration: none; } footer nav a:hover { color: var(--ink); }
     const s = new Sprite(el).use(el.dataset.loop, +el.dataset.h).frame("idle", 0);
     setTimeout(() => s.play("idle"), i * 300);
   });
+})();
+</script>
+<script>
+(function () {
+  function openFromHash() {
+    var el = location.hash && document.querySelector(location.hash);
+    if (el && el.tagName === "DETAILS") el.open = true;
+  }
+  openFromHash();
+  window.addEventListener("hashchange", openFromHash);
 })();
 </script>
 </body>
