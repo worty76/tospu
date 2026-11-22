@@ -3,7 +3,7 @@ use std::thread;
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
-use tospu_core::{MessageKind, ShowPayload};
+use tospu_core::{MessageKind, MonitorInfo, ShowPayload};
 
 use crate::popup_window::PopupWindow;
 use crate::state::AppState;
@@ -30,6 +30,10 @@ impl Popup {
     pub fn foreground_is_fullscreen(&self) -> bool {
         self.window.foreground_is_fullscreen()
     }
+
+    pub fn monitors(&self) -> Vec<MonitorInfo> {
+        self.window.monitors()
+    }
 }
 
 pub fn show(app: &AppHandle, kind: MessageKind) {
@@ -41,7 +45,9 @@ pub fn show(app: &AppHandle, kind: MessageKind) {
         display_seconds: settings.display_seconds,
         pack: state.pack_view(),
     };
-    app.state::<Popup>().window.show_at_corner();
+    app.state::<Popup>()
+        .window
+        .show_at_corner(&settings.display_target);
     let _ = app.emit_to("popup", SHOW_EVENT, payload);
 }
 

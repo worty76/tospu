@@ -1,9 +1,31 @@
 use leptos::prelude::*;
 use serde::Serialize;
-use tospu_model::Settings;
+use tospu_model::{DisplayTarget, Settings};
 
 use crate::ipc;
 use crate::settings::store::{EmptyArgs, Store};
+
+const NAMED_PREFIX: &str = "named:";
+
+fn display_target_value(target: &DisplayTarget) -> String {
+    match target {
+        DisplayTarget::Cursor => "cursor".to_string(),
+        DisplayTarget::Primary => "primary".to_string(),
+        DisplayTarget::Named { name } => format!("{NAMED_PREFIX}{name}"),
+    }
+}
+
+fn parse_display_target(val: &str) -> DisplayTarget {
+    if let Some(name) = val.strip_prefix(NAMED_PREFIX) {
+        DisplayTarget::Named {
+            name: name.to_string(),
+        }
+    } else if val == "primary" {
+        DisplayTarget::Primary
+    } else {
+        DisplayTarget::Cursor
+    }
+}
 
 #[derive(Serialize)]
 struct LaunchArgs {
@@ -58,6 +80,29 @@ pub fn GeneralTab() -> impl IntoView {
     };
     let problems = move || store.view.get().map(|v| v.problems).unwrap_or_default();
     let version = move || store.view.get().map(|v| v.version).unwrap_or_default();
+    let monitors = move || store.view.get().map(|v| v.monitors).unwrap_or_default();
+    let display_target = move || {
+        store
+            .view
+            .get()
+            .map(|v| v.settings.display_target)
+            .unwrap_or_default()
+    };
+
+    let save_display_target = move |target: DisplayTarget| {
+        let Some(mut next) = store.view.get_untracked().map(|v| v.settings) else {
+            return;
+        };
+        next.display_target = target;
+        store.run(async move {
+            ipc::invoke_vec_err::<_, Settings>(
+                "save_settings",
+                &SaveSettingsArgs { settings: next },
+            )
+            .await
+            .map_err(|errs| errs.join("; "))
+        });
+    };
 
     view! {
         <section class="tab-panel" aria-label="General">
@@ -131,6 +176,58 @@ pub fn GeneralTab() -> impl IntoView {
                         />
                         <span class="slider"></span>
                     </label>
+                </div>
+
+                <hr class="divider" />
+
+                <div class="control-row">
+                    <div>
+                        <h3>"Popup screen"</h3>
+                        <p class="hint">"Choose which monitor Tospu pops up on."</p>
+                    </div>
+                    <select
+                        class="field-input"
+                        aria-label="Popup screen"
+                        prop:value=move || display_target_value(&display_target())
+                        on:change=move |ev| {
+                            save_display_target(parse_display_target(&event_target_value(&ev)));
+                        }
+                    >
+                        <option value="cursor">"Follow cursor"</option>
+                        <option value="primary">"Primary display"</option>
+                        {move || {
+                            let connected = monitors();
+                            let current = display_target();
+                            let disconnected = match &current {
+                                DisplayTarget::Named { name }
+                                    if !connected.iter().any(|m| m.name == *name) =>
+                                {
+                                    Some(name.clone())
+                                }
+                                _ => None,
+                            };
+
+                            view! {
+                                {connected
+                                    .into_iter()
+                                    .map(|m| {
+                                        let val = format!("{NAMED_PREFIX}{}", m.name);
+                                        let label = if m.is_primary {
+                                            format!("{} ({}×{}) · Primary", m.name, m.width, m.height)
+                                        } else {
+                                            format!("{} ({}×{})", m.name, m.width, m.height)
+                                        };
+                                        view! { <option value=val>{label}</option> }
+                                    })
+                                    .collect_view()}
+                                {disconnected.map(|name| {
+                                    let val = format!("{NAMED_PREFIX}{name}");
+                                    let label = format!("{name} (disconnected)");
+                                    view! { <option value=val>{label}</option> }
+                                })}
+                            }
+                        }}
+                    </select>
                 </div>
             </div>
 

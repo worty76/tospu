@@ -20,6 +20,17 @@ pub enum ScheduleMode {
     Interval,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(tag = "mode", rename_all = "camelCase")]
+pub enum DisplayTarget {
+    #[default]
+    Cursor,
+    Primary,
+    Named {
+        name: String,
+    },
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct IntervalSchedule {
@@ -72,6 +83,7 @@ pub struct Settings {
     pub quiet_mode: bool,
     pub active_pack: String,
     pub display_seconds: u32,
+    pub display_target: DisplayTarget,
     pub privacy_blur: bool,
     pub onboarded: bool,
 }
@@ -98,6 +110,7 @@ impl Default for Settings {
             quiet_mode: false,
             active_pack: "mochi".into(),
             display_seconds: 8,
+            display_target: DisplayTarget::Cursor,
             privacy_blur: true,
             onboarded: false,
         }
@@ -147,6 +160,12 @@ impl Settings {
             errors.push(format!(
                 "interval: must be between {MIN_INTERVAL_MINUTES} and {MAX_INTERVAL_MINUTES} minutes"
             ));
+        }
+
+        if let DisplayTarget::Named { name } = &self.display_target {
+            if name.trim().is_empty() {
+                errors.push("displayTarget: monitor name must not be empty".into());
+            }
         }
 
         if errors.is_empty() {
@@ -294,5 +313,30 @@ mod tests {
                 "expected interval error for {bad}, got {errs:?}"
             );
         }
+
+        // empty named display target -> "displayTarget"
+        let s = Settings {
+            display_target: DisplayTarget::Named { name: "   ".into() },
+            ..Default::default()
+        };
+        let errs = s.validate().unwrap_err();
+        assert!(
+            errs.iter().any(|e| e.contains("displayTarget")),
+            "expected displayTarget error, got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn display_target_defaults_to_cursor_and_round_trips() {
+        let s: Settings = serde_json::from_str(r#"{"activePack":"mochi"}"#).unwrap();
+        assert_eq!(s.display_target, DisplayTarget::Cursor);
+
+        let named = DisplayTarget::Named {
+            name: "DELL U2720Q".into(),
+        };
+        let json = serde_json::to_string(&named).unwrap();
+        assert_eq!(json, r#"{"mode":"named","name":"DELL U2720Q"}"#);
+        let back: DisplayTarget = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, named);
     }
 }

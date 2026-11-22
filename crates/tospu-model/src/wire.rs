@@ -52,12 +52,23 @@ pub struct PackSummary {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorInfo {
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub is_primary: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsView {
     pub settings: Settings,
     pub messages: Vec<MessageItem>,
     pub packs: Vec<PackSummary>,
+    #[serde(default)]
+    pub monitors: Vec<MonitorInfo>,
     pub problems: Vec<String>,
     pub launch_at_login: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]

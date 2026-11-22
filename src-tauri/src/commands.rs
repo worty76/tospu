@@ -1,13 +1,13 @@
 //! The IPC surface exposed to the popup and settings windows.
 
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_opener::OpenerExt;
 use tospu_core::{
     new_id, MessageDraft, MessageItem, MessageKind, OnboardingInput, Rect, Settings, SettingsView,
 };
 
-use crate::popup;
+use crate::popup::{self, Popup};
 use crate::settings_window;
 use crate::state::{apply_onboarding, AppState};
 use crate::tray;
@@ -17,6 +17,14 @@ const PACK_GUIDE_URL: &str =
 
 fn is_autolaunch_enabled(app: &AppHandle) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+fn build_settings_view(app: &AppHandle, state: &AppState) -> SettingsView {
+    let mut view = state.settings_view(is_autolaunch_enabled(app));
+    if let Some(popup) = app.try_state::<Popup>() {
+        view.monitors = popup.monitors();
+    }
+    view
 }
 
 /// The front end reports where the sprite + bubble are, so only that area
@@ -36,7 +44,7 @@ pub fn get_settings_view(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SettingsView, String> {
-    Ok(state.settings_view(is_autolaunch_enabled(&app)))
+    Ok(build_settings_view(&app, &state))
 }
 
 #[tauri::command]
@@ -134,7 +142,7 @@ pub fn open_pack_guide(app: AppHandle) -> Result<(), String> {
 pub fn reload_files(app: AppHandle, state: State<'_, AppState>) -> Result<SettingsView, String> {
     state.reload();
     tray::refresh(&app);
-    Ok(state.settings_view(is_autolaunch_enabled(&app)))
+    Ok(build_settings_view(&app, &state))
 }
 
 #[tauri::command]

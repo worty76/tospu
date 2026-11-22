@@ -158,6 +158,7 @@ impl AppState {
             settings: l.settings.clone(),
             messages: l.content.file().messages.clone(),
             packs,
+            monitors: Vec::new(),
             problems,
             launch_at_login,
             next_popup,

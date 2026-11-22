@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{PhysicalPosition, WebviewWindow};
+use tauri::{Monitor, PhysicalPosition, WebviewWindow};
+use tospu_core::{DisplayTarget, MonitorInfo};
 
 use super::PopupWindow;
 
@@ -10,6 +11,14 @@ const MARGIN: f64 = 16.0;
 pub struct TauriPopupWindow {
     window: WebviewWindow,
     click_through: AtomicBool,
+}
+
+fn monitor_label(monitor: &Monitor, index: usize) -> String {
+    monitor
+        .name()
+        .cloned()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| format!("Display {}", index + 1))
 }
 
 impl TauriPopupWindow {
@@ -24,12 +33,31 @@ impl TauriPopupWindow {
         }
     }
 
-    fn move_to_corner(&self) -> tauri::Result<()> {
-        let monitor = match self.window.cursor_position() {
-            Ok(p) => self.window.monitor_from_point(p.x, p.y)?,
-            Err(_) => None,
-        };
-        let Some(monitor) = monitor.or(self.window.primary_monitor()?) else {
+    fn pick_monitor(&self, target: &DisplayTarget) -> tauri::Result<Option<Monitor>> {
+        match target {
+            DisplayTarget::Cursor => {
+                let by_cursor = match self.window.cursor_position() {
+                    Ok(p) => self.window.monitor_from_point(p.x, p.y)?,
+                    Err(_) => None,
+                };
+                Ok(by_cursor.or(self.window.primary_monitor()?))
+            }
+            DisplayTarget::Primary => self.window.primary_monitor(),
+            DisplayTarget::Named { name } => {
+                let matched = self
+                    .window
+                    .available_monitors()?
+                    .into_iter()
+                    .enumerate()
+                    .find(|(i, m)| monitor_label(m, *i) == *name)
+                    .map(|(_, m)| m);
+                Ok(matched.or(self.window.primary_monitor()?))
+            }
+        }
+    }
+
+    fn move_to_corner(&self, target: &DisplayTarget) -> tauri::Result<()> {
+        let Some(monitor) = self.pick_monitor(target)? else {
             return Ok(());
         };
         let area = monitor.work_area();
@@ -42,8 +70,8 @@ impl TauriPopupWindow {
 }
 
 impl PopupWindow for TauriPopupWindow {
-    fn show_at_corner(&self) {
-        let _ = self.move_to_corner();
+    fn show_at_corner(&self, target: &DisplayTarget) {
+        let _ = self.move_to_corner(target);
         // `show` doesn't focus a window created with `focus: false`.
         let _ = self.window.show();
         let _ = self.window.set_always_on_top(true);
@@ -77,5 +105,28 @@ impl PopupWindow for TauriPopupWindow {
             (cursor.x - origin.x as f64) / scale,
             (cursor.y - origin.y as f64) / scale,
         ))
+    }
+
+    fn monitors(&self) -> Vec<MonitorInfo> {
+        let primary = self.window.primary_monitor().ok().flatten();
+        let Ok(list) = self.window.available_monitors() else {
+            return Vec::new();
+        };
+        list.into_iter()
+            .enumerate()
+            .map(|(i, m)| {
+                let scale = m.scale_factor().max(1.0);
+                let size = m.size();
+                let is_primary = primary
+                    .as_ref()
+                    .is_some_and(|p| p.position() == m.position() && p.size() == m.size());
+                MonitorInfo {
+                    name: monitor_label(&m, i),
+                    width: (size.width as f64 / scale).round() as u32,
+                    height: (size.height as f64 / scale).round() as u32,
+                    is_primary,
+                }
+            })
+            .collect()
     }
 }
