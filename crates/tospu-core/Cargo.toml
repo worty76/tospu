@@ -5,6 +5,7 @@ edition = "2021"
 description = "Pure logic for Tospu: settings, scheduling, sprite pack discovery. No GUI dependencies."
 
 [dependencies]
+tospu-model = { path = "../tospu-model" }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

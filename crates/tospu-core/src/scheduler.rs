@@ -2,7 +2,7 @@
 
 use chrono::{Datelike, Duration, NaiveDateTime, Timelike};
 
-use crate::settings::{MessageKind, Settings};
+use tospu_model::{MessageKind, Settings};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Fire {
@@ -63,8 +63,8 @@ fn jitter(day: i32, slot: usize, max: u32) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::settings::{QuietHours, Slot};
     use chrono::NaiveDate;
+    use tospu_model::{QuietHours, Slot};
 
     fn at(d: u32, h: u32, m: u32) -> NaiveDateTime {
         NaiveDate::from_ymd_opt(2026, 11, d)

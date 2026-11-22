@@ -1,8 +1,9 @@
 use std::fs;
+use std::path::PathBuf;
 use std::sync::{Condvar, Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
-use tospu_core::{discover_packs, PackEntry, PackScan, Settings};
+use tospu_core::{discover_packs, settings_store, Pack, PackScan, Settings};
 
 use crate::paths::Paths;
 
@@ -20,6 +21,14 @@ impl Rect {
     pub fn contains(&self, x: f64, y: f64) -> bool {
         x >= self.x && y >= self.y && x <= self.x + self.width && y <= self.y + self.height
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackEntry {
+    pub id: String,
+    pub dir: PathBuf,
+    pub manifest_json: String,
 }
 
 /// Everything the front end needs to render a popup, read fresh each time.
@@ -60,7 +69,7 @@ impl AppState {
     }
 
     fn read(paths: &Paths) -> Loaded {
-        let (settings, settings_error) = Settings::load_or_create(&paths.settings_file);
+        let (settings, settings_error) = settings_store::load_or_create(&paths.settings_file);
         Loaded {
             settings,
             scan: discover_packs(&paths.sprite_roots()),
@@ -76,7 +85,7 @@ impl AppState {
         self.lock().settings.clone()
     }
 
-    pub fn packs(&self) -> Vec<PackEntry> {
+    pub fn packs(&self) -> Vec<Pack> {
         self.lock().scan.packs.clone()
     }
 
@@ -90,9 +99,7 @@ impl AppState {
     pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) {
         let mut l = self.lock();
         f(&mut l.settings);
-        l.settings_error = l
-            .settings
-            .save(&self.paths.settings_file)
+        l.settings_error = settings_store::save(&self.paths.settings_file, &l.settings)
             .err()
             .map(|e| format!("saving settings: {e}"));
         drop(l);
@@ -105,6 +112,16 @@ impl AppState {
             Ok(text) => (Some(text), None),
             Err(e) => (None, Some(format!("content.json: {e}"))),
         };
+        let packs = l
+            .scan
+            .packs
+            .iter()
+            .map(|p| PackEntry {
+                id: p.id.clone(),
+                dir: p.dir.clone(),
+                manifest_json: serde_json::to_string(&p.manifest).expect("manifest serializes"),
+            })
+            .collect();
         let errors = l
             .settings_error
             .iter()
@@ -114,7 +131,7 @@ impl AppState {
             .collect();
         Snapshot {
             settings: l.settings.clone(),
-            packs: l.scan.packs.clone(),
+            packs,
             content_json,
             errors,
         }
