@@ -23,5 +23,6 @@ web-sys = { version = "0.3", features = [
     "KeyboardEvent",
     "MediaQueryList",
     "Performance",
+    "SubmitEvent",
     "UrlSearchParams",
 ] }
