@@ -43,6 +43,28 @@ pub async fn invoke<A: Serialize, R: DeserializeOwned>(cmd: &str, args: &A) -> R
     serde_wasm_bindgen::from_value(val).map_err(|e| format!("decode {cmd}: {e}"))
 }
 
+pub async fn invoke_vec_err<A: Serialize, R: DeserializeOwned>(
+    cmd: &str,
+    args: &A,
+) -> Result<R, Vec<String>> {
+    let js_args = to_js_args(args).map_err(|e| vec![e])?;
+    let val = match tauri_invoke(cmd, js_args).await {
+        Ok(v) => v,
+        Err(err) => {
+            if let Ok(list) = serde_wasm_bindgen::from_value::<Vec<String>>(err.clone()) {
+                return Err(list);
+            }
+            return Err(vec![js_error_to_string(err)]);
+        }
+    };
+    let val = if val.is_undefined() {
+        JsValue::NULL
+    } else {
+        val
+    };
+    serde_wasm_bindgen::from_value(val).map_err(|e| vec![format!("decode {cmd}: {e}")])
+}
+
 pub fn listen<T: DeserializeOwned + 'static>(event: &str, f: impl Fn(T) + 'static) {
     let event_name = event.to_string();
     wasm_bindgen_futures::spawn_local(async move {

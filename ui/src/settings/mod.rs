@@ -1,9 +1,15 @@
+pub mod character;
+pub mod general;
 pub mod messages;
+pub mod schedule;
 pub mod store;
 
 use leptos::prelude::*;
 
+use crate::settings::character::CharacterTab;
+use crate::settings::general::GeneralTab;
 use crate::settings::messages::MessagesTab;
+use crate::settings::schedule::ScheduleTab;
 use crate::settings::store::Store;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -84,9 +90,9 @@ pub fn SettingsApp() -> impl IntoView {
 
                 {move || match tab.get() {
                     Tab::Messages => view! { <MessagesTab /> }.into_any(),
-                    Tab::Schedule => view! { <p class="empty-state">"Schedule coming next."</p> }.into_any(),
-                    Tab::Character => view! { <p class="empty-state">"Character coming next."</p> }.into_any(),
-                    Tab::General => view! { <p class="empty-state">"General coming next."</p> }.into_any(),
+                    Tab::Schedule => view! { <ScheduleTab /> }.into_any(),
+                    Tab::Character => view! { <CharacterTab /> }.into_any(),
+                    Tab::General => view! { <GeneralTab /> }.into_any(),
                 }}
             </main>
         </div>
