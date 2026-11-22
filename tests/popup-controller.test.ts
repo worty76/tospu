@@ -22,7 +22,7 @@ function snapshot(overrides: Partial<Snapshot["settings"]> = {}): Snapshot {
   return {
     settings: { activePack: "mochi", displaySeconds: 2, quietMode: false, ...overrides },
     packs: [{ id: "mochi", dir: "/packs/mochi", manifestJson: JSON.stringify(manifest) }],
-    contentJson: JSON.stringify({ goals: ["Ship Yub"], proud: ["Proud of you"] }),
+    contentJson: JSON.stringify({ goals: ["Ship Tospu"], proud: ["Proud of you"] }),
     errors: [],
   };
 }
@@ -68,7 +68,7 @@ describe("PopupController", () => {
     expect(plays[1]).toBe("cheer");
     expect(plays.slice(2, -1).every((p) => p === "idle")).toBe(true);
     expect(plays.at(-1)).toBe("exit");
-    expect(bubbleText()).toBe("Big goal: Ship Yub");
+    expect(bubbleText()).toBe("Big goal: Ship Tospu");
     expect(backend.popupFinished).toHaveBeenCalledOnce();
     expect(backend.setHitRect).toHaveBeenLastCalledWith(null);
   });

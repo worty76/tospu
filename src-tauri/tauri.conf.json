@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Yub",
+  "productName": "Tospu",
   "version": "0.1.0",
-  "identifier": "dev.yub.companion",
+  "identifier": "io.github.worty76.tospu",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1430",
@@ -15,7 +15,7 @@
       {
         "label": "popup",
         "url": "index.html",
-        "title": "Yub",
+        "title": "Tospu",
         "width": 420,
         "height": 340,
         "transparent": true,

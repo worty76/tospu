@@ -29,13 +29,17 @@ pub fn run() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![commands::get_snapshot, commands::set_hit_rect, commands::popup_finished])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_snapshot,
+            commands::set_hit_rect,
+            commands::popup_finished
+        ])
         .setup(|app| {
             setup(app)?;
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running Yub");
+        .expect("error while running Tospu");
 }
 
 fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -47,7 +51,9 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     paths.ensure()?;
     app.manage(AppState::load(paths));
 
-    let window = app.get_webview_window("popup").ok_or("popup window missing from tauri.conf.json")?;
+    let window = app
+        .get_webview_window("popup")
+        .ok_or("popup window missing from tauri.conf.json")?;
     app.manage(Popup::new(popup_window::create(window)));
 
     tray::create(app.handle())?;

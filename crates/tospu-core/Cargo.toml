@@ -1,8 +1,8 @@
 [package]
-name = "yub-core"
+name = "tospu-core"
 version = "0.1.0"
 edition = "2021"
-description = "Pure logic for Yub: settings, scheduling, sprite pack discovery. No GUI dependencies."
+description = "Pure logic for Tospu: settings, scheduling, sprite pack discovery. No GUI dependencies."
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }

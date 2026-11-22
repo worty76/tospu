@@ -1,4 +1,4 @@
-/** The four kinds of nudges Yub can deliver. */
+/** The four kinds of nudges Tospu can deliver. */
 export const MESSAGE_KINDS = ["goal", "quote", "gratitude", "proud"] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 

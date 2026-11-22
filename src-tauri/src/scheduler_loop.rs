@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use chrono::Local;
 use tauri::{AppHandle, Manager};
-use yub_core::next_fire;
+use tospu_core::next_fire;
 
 use crate::popup::{self, Popup};
 use crate::state::AppState;
@@ -28,7 +28,10 @@ pub fn spawn(app: AppHandle) {
         // Sleep, but wake early if settings change.
         let gen = state.generation();
         let start = *gen;
-        let (gen, timeout) = state.changed.wait_timeout_while(gen, nap, |g| *g == start).unwrap_or_else(|e| e.into_inner());
+        let (gen, timeout) = state
+            .changed
+            .wait_timeout_while(gen, nap, |g| *g == start)
+            .unwrap_or_else(|e| e.into_inner());
         drop(gen);
         if !timeout.timed_out() {
             continue; // settings changed: re-plan

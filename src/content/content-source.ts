@@ -1,7 +1,7 @@
 import { MESSAGE_KINDS, type Message, type MessageKind } from "../domain/types";
 import type { Content } from "./schema";
 
-/** Decides WHAT Yub says. Swap in a remote or AI source by implementing this. */
+/** Decides WHAT Tospu says. Swap in a remote or AI source by implementing this. */
 export interface ContentSource {
   next(kind: MessageKind): Message;
 }

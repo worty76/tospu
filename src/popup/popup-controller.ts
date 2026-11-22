@@ -60,7 +60,7 @@ export class PopupController {
     try {
       await this.run(kind, quiet);
     } catch (e) {
-      console.error("[yub] popup failed", e);
+      console.error("[tospu] popup failed", e);
     } finally {
       this.onClick = null;
       this.bubble.hide();
@@ -147,7 +147,7 @@ export class PopupController {
 
   private pickPack(snap: Snapshot): LoadedPack | undefined {
     const { packs, errors } = loadPacks(snap.packs, this.backend.assetUrl);
-    for (const e of [...snap.errors, ...errors]) console.warn("[yub]", e);
+    for (const e of [...snap.errors, ...errors]) console.warn("[tospu]", e);
     return choosePack(packs, snap.settings.activePack);
   }
 
@@ -158,11 +158,11 @@ export class PopupController {
       try {
         json = snap.contentJson ? JSON.parse(snap.contentJson) : {};
       } catch (e) {
-        console.warn("[yub] content.json is not valid JSON, using defaults", e);
+        console.warn("[tospu] content.json is not valid JSON, using defaults", e);
         json = null;
       }
       const { content, error } = parseContent(json);
-      if (error) console.warn("[yub]", error);
+      if (error) console.warn("[tospu]", error);
       this.content = { json: snap.contentJson, source: new LocalContentSource(content) };
     }
     return this.content.source;

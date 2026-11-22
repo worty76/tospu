@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn a generated character sheet into a Yub sprite pack.
+"""Turn a generated character sheet into a Tospu sprite pack.
 
 Expected input: an image with one or more solid-magenta (#FF00FF) strips,
 each holding N evenly spaced frames of one animation (top to bottom:

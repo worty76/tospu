@@ -26,8 +26,8 @@ describe("parseContent", () => {
 
 describe("LocalContentSource", () => {
   it("formats goals with their title", () => {
-    const src = new LocalContentSource({ ...empty, goals: [{ title: "Ship Yub" }] });
-    expect(src.next("goal")).toEqual({ kind: "goal", text: "Big goal: Ship Yub" });
+    const src = new LocalContentSource({ ...empty, goals: [{ title: "Ship Tospu" }] });
+    expect(src.next("goal")).toEqual({ kind: "goal", text: "Big goal: Ship Tospu" });
   });
 
   it("does not repeat the previous message when there are alternatives", () => {

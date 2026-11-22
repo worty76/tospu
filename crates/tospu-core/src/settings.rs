@@ -31,8 +31,14 @@ impl HhMm {
 impl FromStr for HhMm {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (h, m) = s.split_once(':').ok_or_else(|| format!("\"{s}\" is not HH:MM"))?;
-        let parse = |v: &str| v.trim().parse::<u32>().map_err(|_| format!("\"{s}\" is not HH:MM"));
+        let (h, m) = s
+            .split_once(':')
+            .ok_or_else(|| format!("\"{s}\" is not HH:MM"))?;
+        let parse = |v: &str| {
+            v.trim()
+                .parse::<u32>()
+                .map_err(|_| format!("\"{s}\" is not HH:MM"))
+        };
         HhMm::new(parse(h)?, parse(m)?).ok_or_else(|| format!("\"{s}\" is out of range"))
     }
 }
@@ -51,7 +57,9 @@ impl Serialize for HhMm {
 
 impl<'de> Deserialize<'de> for HhMm {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        String::deserialize(d)?.parse().map_err(serde::de::Error::custom)
+        String::deserialize(d)?
+            .parse()
+            .map_err(serde::de::Error::custom)
     }
 }
 
@@ -92,7 +100,10 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
-        let slot = |h, kind| Slot { time: HhMm::new(h, 0).unwrap(), kind };
+        let slot = |h, kind| Slot {
+            time: HhMm::new(h, 0).unwrap(),
+            kind,
+        };
         Self {
             slots: vec![
                 slot(9, MessageKind::Goal),
@@ -100,7 +111,10 @@ impl Default for Settings {
                 slot(21, MessageKind::Gratitude),
             ],
             jitter_minutes: 10,
-            quiet_hours: Some(QuietHours { start: HhMm::new(23, 0).unwrap(), end: HhMm::new(7, 30).unwrap() }),
+            quiet_hours: Some(QuietHours {
+                start: HhMm::new(23, 0).unwrap(),
+                end: HhMm::new(7, 30).unwrap(),
+            }),
             quiet_mode: false,
             active_pack: "mochi".into(),
             display_seconds: 8,
@@ -120,7 +134,10 @@ impl Settings {
             },
             Err(_) => {
                 let s = Settings::default();
-                let err = s.save(path).err().map(|e| format!("could not create settings.json: {e}"));
+                let err = s
+                    .save(path)
+                    .err()
+                    .map(|e| format!("could not create settings.json: {e}"));
                 (s, err)
             }
         }
@@ -149,7 +166,10 @@ mod tests {
 
     #[test]
     fn quiet_hours_wrap_past_midnight() {
-        let q = QuietHours { start: "23:00".parse().unwrap(), end: "07:30".parse().unwrap() };
+        let q = QuietHours {
+            start: "23:00".parse().unwrap(),
+            end: "07:30".parse().unwrap(),
+        };
         assert!(q.contains(23 * 60 + 30));
         assert!(q.contains(3 * 60));
         assert!(!q.contains(7 * 60 + 30));

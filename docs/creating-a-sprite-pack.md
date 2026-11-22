@@ -1,9 +1,9 @@
 # Creating a sprite pack
 
-A character is just a folder. Yub finds it, validates it and lists it under **Character** in the menu bar. You don't need to change any code.
+A character is just a folder. Tospu finds it, validates it and lists it under **Character** in the menu bar. You don't need to change any code.
 
 ```
-~/Library/Application Support/dev.yub.companion/sprites/
+~/Library/Application Support/io.github.worty76.tospu/sprites/
   my-fox/
     manifest.json
     idle.png  wave.png  cheer.png  sleep.png
@@ -54,7 +54,7 @@ Why these rules? Your first sheets had three problems the slicer has to fix or w
 
 ```bash
 python3 tools/slice_sprites.py my-sheet.png --id my-fox --name "Little Fox" \
-  --out ~/Library/Application\ Support/dev.yub.companion/sprites
+  --out ~/Library/Application\ Support/io.github.worty76.tospu/sprites
 ```
 
 The slicer finds the magenta strips, removes the background and shadows, centres each frame, aligns all strips on one baseline, and writes the PNGs plus `manifest.json`. It prints a warning when art crosses a frame border. If you see one, regenerate the sheet or fix the PNG by hand.

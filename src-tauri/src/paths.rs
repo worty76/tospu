@@ -4,8 +4,9 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 const DEFAULT_CONTENT: &str = include_str!("../../defaults/content.json");
+const LEGACY_IDENTIFIER: &str = "dev.yub.companion";
 
-/// Every file location Yub uses, resolved once at startup.
+/// Every file location Tospu uses, resolved once at startup.
 #[derive(Debug, Clone)]
 pub struct Paths {
     pub settings_file: PathBuf,
@@ -19,6 +20,12 @@ pub struct Paths {
 impl Paths {
     pub fn resolve(app: &AppHandle) -> tauri::Result<Self> {
         let data = app.path().app_data_dir()?;
+        if let Some(parent) = data.parent() {
+            let old_dir = parent.join(LEGACY_IDENTIFIER);
+            if let Err(e) = tospu_core::legacy::migrate_legacy_data(&old_dir, &data) {
+                eprintln!("[tospu] legacy data migration failed: {e}");
+            }
+        }
         Ok(Self {
             settings_file: data.join("settings.json"),
             content_file: data.join("content.json"),
@@ -38,6 +45,10 @@ impl Paths {
 
     /// Lowest priority first, as `discover_packs` expects.
     pub fn sprite_roots(&self) -> Vec<PathBuf> {
-        self.bundled_sprites.iter().cloned().chain([self.user_sprites.clone()]).collect()
+        self.bundled_sprites
+            .iter()
+            .cloned()
+            .chain([self.user_sprites.clone()])
+            .collect()
     }
 }

@@ -1,6 +1,7 @@
-//! Pure, GUI-free logic for Yub. The Tauri shell wraps this crate; nothing
+//! Pure, GUI-free logic for Tospu. The Tauri shell wraps this crate; nothing
 //! here knows about windows, trays or operating systems.
 
+pub mod legacy;
 pub mod packs;
 pub mod scheduler;
 pub mod settings;

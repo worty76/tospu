@@ -2,7 +2,7 @@ use std::fs;
 use std::sync::{Condvar, Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
-use yub_core::{discover_packs, PackEntry, PackScan, Settings};
+use tospu_core::{discover_packs, PackEntry, PackScan, Settings};
 
 use crate::paths::Paths;
 
@@ -61,7 +61,11 @@ impl AppState {
 
     fn read(paths: &Paths) -> Loaded {
         let (settings, settings_error) = Settings::load_or_create(&paths.settings_file);
-        Loaded { settings, scan: discover_packs(&paths.sprite_roots()), settings_error }
+        Loaded {
+            settings,
+            scan: discover_packs(&paths.sprite_roots()),
+            settings_error,
+        }
     }
 
     fn lock(&self) -> MutexGuard<'_, Loaded> {
@@ -86,7 +90,11 @@ impl AppState {
     pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) {
         let mut l = self.lock();
         f(&mut l.settings);
-        l.settings_error = l.settings.save(&self.paths.settings_file).err().map(|e| format!("saving settings: {e}"));
+        l.settings_error = l
+            .settings
+            .save(&self.paths.settings_file)
+            .err()
+            .map(|e| format!("saving settings: {e}"));
         drop(l);
         self.bump();
     }
@@ -97,8 +105,19 @@ impl AppState {
             Ok(text) => (Some(text), None),
             Err(e) => (None, Some(format!("content.json: {e}"))),
         };
-        let errors = l.settings_error.iter().cloned().chain(l.scan.errors.iter().cloned()).chain(content_error).collect();
-        Snapshot { settings: l.settings.clone(), packs: l.scan.packs.clone(), content_json, errors }
+        let errors = l
+            .settings_error
+            .iter()
+            .cloned()
+            .chain(l.scan.errors.iter().cloned())
+            .chain(content_error)
+            .collect();
+        Snapshot {
+            settings: l.settings.clone(),
+            packs: l.scan.packs.clone(),
+            content_json,
+            errors,
+        }
     }
 
     pub fn generation(&self) -> MutexGuard<'_, u64> {

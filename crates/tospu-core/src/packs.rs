@@ -30,7 +30,9 @@ pub fn discover_packs(roots: &[PathBuf]) -> PackScan {
     let mut found = BTreeMap::new();
     let mut errors = Vec::new();
     for root in roots {
-        let Ok(entries) = fs::read_dir(root) else { continue };
+        let Ok(entries) = fs::read_dir(root) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let dir = entry.path();
             let manifest = dir.join("manifest.json");
@@ -40,13 +42,23 @@ pub fn discover_packs(roots: &[PathBuf]) -> PackScan {
             let Some(id) = folder_id(&dir) else { continue };
             match fs::read_to_string(&manifest) {
                 Ok(manifest_json) => {
-                    found.insert(id.clone(), PackEntry { id, dir, manifest_json });
+                    found.insert(
+                        id.clone(),
+                        PackEntry {
+                            id,
+                            dir,
+                            manifest_json,
+                        },
+                    );
                 }
                 Err(e) => errors.push(format!("{}: {e}", manifest.display())),
             }
         }
     }
-    PackScan { packs: found.into_values().collect(), errors }
+    PackScan {
+        packs: found.into_values().collect(),
+        errors,
+    }
 }
 
 fn folder_id(dir: &Path) -> Option<String> {

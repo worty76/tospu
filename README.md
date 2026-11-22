@@ -1,4 +1,4 @@
-# Yub
+# Tospu
 
 A tiny, private desktop companion. A few times a day a cute sprite hops into the corner of your screen and reminds you of your **big goals**, a **quote** to live by, something to be **grateful** for, or why you should be **proud**. Then it falls asleep and disappears.
 
@@ -13,7 +13,7 @@ Requirements: Node 20+, Rust (stable), and Xcode Command Line Tools on macOS.
 ```bash
 npm install
 npm run tauri dev       # run the app (menu bar icon appears; try "Show one now")
-npm run tauri build     # build Yub.app / .dmg into src-tauri/target/release/bundle
+npm run tauri build     # build Tospu.app / .dmg into src-tauri/target/release/bundle
 ```
 
 To work on sprites or styling without the app, run `npm run dev` and open http://localhost:1430/?pack=mochi-fluffy. This loops popups in the browser.
@@ -29,7 +29,7 @@ From the menu bar icon:
 | Open sprites folder | where your own character packs go |
 | Reload | re-reads everything after you edit |
 
-Files live in `~/Library/Application Support/dev.yub.companion/`. Changes to `content.json` apply on the next popup.
+Files live in `~/Library/Application Support/io.github.worty76.tospu/`. Changes to `content.json` apply on the next popup.
 
 `settings.json` example:
 ```json
@@ -51,7 +51,7 @@ Files live in `~/Library/Application Support/dev.yub.companion/`. Changes to `co
 ## How it's built
 
 ```
-src-tauri/crates/yub-core   pure Rust: settings, scheduler, pack discovery (unit tested)
+crates/tospu-core           pure Rust: settings, scheduler, pack discovery (unit tested)
 src-tauri/src               Tauri shell: tray menu, popup window, scheduler thread, IPC
   popup_window/             the ONLY OS-specific layer (PopupWindow trait)
 src/domain                  shared types

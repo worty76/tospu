@@ -7,14 +7,14 @@ use tauri_plugin_opener::OpenerExt;
 use crate::popup::{self, SNAPSHOT_CHANGED_EVENT};
 use crate::state::AppState;
 
-const TRAY_ID: &str = "yub";
+const TRAY_ID: &str = "tospu";
 const PACK_PREFIX: &str = "pack:";
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let icon = Image::from_bytes(include_bytes!("../icons/tray.png"))?;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
-        .tooltip("Yub")
+        .tooltip("Tospu")
         .menu(&build_menu(app)?)
         .show_menu_on_left_click(true)
         .on_menu_event(on_menu_event)
@@ -36,7 +36,14 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 
     let packs = Submenu::with_id(app, "packs", "Character", true)?;
     for p in state.packs() {
-        let item = CheckMenuItem::with_id(app, format!("{PACK_PREFIX}{}", p.id), &p.id, true, p.id == settings.active_pack, None::<&str>)?;
+        let item = CheckMenuItem::with_id(
+            app,
+            format!("{PACK_PREFIX}{}", p.id),
+            &p.id,
+            true,
+            p.id == settings.active_pack,
+            None::<&str>,
+        )?;
         packs.append(&item)?;
     }
 
@@ -44,15 +51,34 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         app,
         &[
             &MenuItem::with_id(app, "show-now", "Show one now", true, None::<&str>)?,
-            &CheckMenuItem::with_id(app, "quiet", "Quiet mode", true, settings.quiet_mode, Some("CmdOrCtrl+Shift+Y"))?,
+            &CheckMenuItem::with_id(
+                app,
+                "quiet",
+                "Quiet mode",
+                true,
+                settings.quiet_mode,
+                Some("CmdOrCtrl+Shift+Y"),
+            )?,
             &packs,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "open-content", "Edit goals & quotes…", true, None::<&str>)?,
+            &MenuItem::with_id(
+                app,
+                "open-content",
+                "Edit goals & quotes…",
+                true,
+                None::<&str>,
+            )?,
             &MenuItem::with_id(app, "open-settings", "Edit schedule…", true, None::<&str>)?,
-            &MenuItem::with_id(app, "open-sprites", "Open sprites folder", true, None::<&str>)?,
+            &MenuItem::with_id(
+                app,
+                "open-sprites",
+                "Open sprites folder",
+                true,
+                None::<&str>,
+            )?,
             &MenuItem::with_id(app, "reload", "Reload", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "quit", "Quit Yub", true, None::<&str>)?,
+            &MenuItem::with_id(app, "quit", "Quit Tospu", true, None::<&str>)?,
         ],
     )
 }
@@ -81,7 +107,8 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
 }
 
 pub fn toggle_quiet_mode(app: &AppHandle) {
-    app.state::<AppState>().update_settings(|s| s.quiet_mode = !s.quiet_mode);
+    app.state::<AppState>()
+        .update_settings(|s| s.quiet_mode = !s.quiet_mode);
     refresh(app);
 }
 

@@ -18,7 +18,10 @@ impl TauriPopupWindow {
         let _ = window.set_always_on_top(true);
         // Click-through is applied after the first `show`: on Linux, changing
         // input regions of a never-shown (unrealized) window panics in tao.
-        Self { window, click_through: AtomicBool::new(false) }
+        Self {
+            window,
+            click_through: AtomicBool::new(false),
+        }
     }
 
     fn move_to_corner(&self) -> tauri::Result<()> {
@@ -26,7 +29,9 @@ impl TauriPopupWindow {
             Ok(p) => self.window.monitor_from_point(p.x, p.y)?,
             Err(_) => None,
         };
-        let Some(monitor) = monitor.or(self.window.primary_monitor()?) else { return Ok(()) };
+        let Some(monitor) = monitor.or(self.window.primary_monitor()?) else {
+            return Ok(());
+        };
         let area = monitor.work_area();
         let size = self.window.outer_size()?;
         let margin = (MARGIN * monitor.scale_factor()) as i32;
@@ -68,6 +73,9 @@ impl PopupWindow for TauriPopupWindow {
         let cursor = self.window.cursor_position().ok()?;
         let origin = self.window.inner_position().ok()?;
         let scale = self.window.scale_factor().ok()?;
-        Some(((cursor.x - origin.x as f64) / scale, (cursor.y - origin.y as f64) / scale))
+        Some((
+            (cursor.x - origin.x as f64) / scale,
+            (cursor.y - origin.y as f64) / scale,
+        ))
     }
 }

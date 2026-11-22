@@ -23,13 +23,21 @@ pub fn next_fire(now: NaiveDateTime, s: &Settings) -> Option<Fire> {
         .flat_map(|day| {
             let date = now.date() + Duration::days(day);
             s.slots.iter().enumerate().map(move |(i, slot)| {
-                let base = date.and_hms_opt(0, 0, 0).unwrap() + Duration::minutes(slot.time.minutes() as i64);
-                let at = base + Duration::minutes(jitter(date.num_days_from_ce(), i, s.jitter_minutes));
-                Fire { at, kind: slot.kind }
+                let base = date.and_hms_opt(0, 0, 0).unwrap()
+                    + Duration::minutes(slot.time.minutes() as i64);
+                let at =
+                    base + Duration::minutes(jitter(date.num_days_from_ce(), i, s.jitter_minutes));
+                Fire {
+                    at,
+                    kind: slot.kind,
+                }
             })
         })
         .filter(|f| f.at > now)
-        .filter(|f| !s.quiet_hours.is_some_and(|q| q.contains(f.at.hour() * 60 + f.at.minute())))
+        .filter(|f| {
+            !s.quiet_hours
+                .is_some_and(|q| q.contains(f.at.hour() * 60 + f.at.minute()))
+        })
         .min_by_key(|f| f.at)
 }
 
@@ -40,7 +48,11 @@ fn jitter(day: i32, slot: usize, max: u32) -> i64 {
     }
     // FNV-1a over the two numbers: tiny, stable across builds and platforms.
     let mut h: u64 = 0xcbf29ce484222325;
-    for b in day.to_le_bytes().into_iter().chain((slot as u64).to_le_bytes()) {
+    for b in day
+        .to_le_bytes()
+        .into_iter()
+        .chain((slot as u64).to_le_bytes())
+    {
         h ^= b as u64;
         h = h.wrapping_mul(0x100000001b3);
     }
@@ -55,14 +67,30 @@ mod tests {
     use chrono::NaiveDate;
 
     fn at(d: u32, h: u32, m: u32) -> NaiveDateTime {
-        NaiveDate::from_ymd_opt(2026, 11, d).unwrap().and_hms_opt(h, m, 0).unwrap()
+        NaiveDate::from_ymd_opt(2026, 11, d)
+            .unwrap()
+            .and_hms_opt(h, m, 0)
+            .unwrap()
     }
 
-    fn settings(slots: &[(&str, MessageKind)], jitter: u32, quiet: Option<(&str, &str)>) -> Settings {
+    fn settings(
+        slots: &[(&str, MessageKind)],
+        jitter: u32,
+        quiet: Option<(&str, &str)>,
+    ) -> Settings {
         Settings {
-            slots: slots.iter().map(|(t, k)| Slot { time: t.parse().unwrap(), kind: *k }).collect(),
+            slots: slots
+                .iter()
+                .map(|(t, k)| Slot {
+                    time: t.parse().unwrap(),
+                    kind: *k,
+                })
+                .collect(),
             jitter_minutes: jitter,
-            quiet_hours: quiet.map(|(s, e)| QuietHours { start: s.parse().unwrap(), end: e.parse().unwrap() }),
+            quiet_hours: quiet.map(|(s, e)| QuietHours {
+                start: s.parse().unwrap(),
+                end: e.parse().unwrap(),
+            }),
             ..Settings::default()
         }
     }
@@ -72,13 +100,25 @@ mod tests {
     #[test]
     fn picks_the_next_slot_today() {
         let s = settings(&[("09:00", Goal), ("14:00", Quote)], 0, None);
-        assert_eq!(next_fire(at(21, 10, 0), &s), Some(Fire { at: at(21, 14, 0), kind: Quote }));
+        assert_eq!(
+            next_fire(at(21, 10, 0), &s),
+            Some(Fire {
+                at: at(21, 14, 0),
+                kind: Quote
+            })
+        );
     }
 
     #[test]
     fn rolls_over_to_tomorrow_after_the_last_slot() {
         let s = settings(&[("09:00", Goal), ("14:00", Quote)], 0, None);
-        assert_eq!(next_fire(at(21, 15, 0), &s), Some(Fire { at: at(22, 9, 0), kind: Goal }));
+        assert_eq!(
+            next_fire(at(21, 15, 0), &s),
+            Some(Fire {
+                at: at(22, 9, 0),
+                kind: Goal
+            })
+        );
     }
 
     #[test]
@@ -95,14 +135,29 @@ mod tests {
         assert_eq!(a, b, "re-planning must not move the popup");
         let off = (a.at - at(21, 12, 0)).num_minutes().abs();
         assert!(off <= 10, "offset {off} out of range");
-        let days: Vec<_> = (1..=10).map(|d| next_fire(at(d, 0, 0), &s).unwrap().at.minute()).collect();
-        assert!(days.windows(2).any(|w| w[0] != w[1]), "jitter should vary by day");
+        let days: Vec<_> = (1..=10)
+            .map(|d| next_fire(at(d, 0, 0), &s).unwrap().at.minute())
+            .collect();
+        assert!(
+            days.windows(2).any(|w| w[0] != w[1]),
+            "jitter should vary by day"
+        );
     }
 
     #[test]
     fn skips_slots_inside_quiet_hours_across_midnight() {
-        let s = settings(&[("23:30", Proud), ("06:00", Goal), ("08:00", Quote)], 0, Some(("23:00", "07:30")));
-        assert_eq!(next_fire(at(21, 22, 0), &s), Some(Fire { at: at(22, 8, 0), kind: Quote }));
+        let s = settings(
+            &[("23:30", Proud), ("06:00", Goal), ("08:00", Quote)],
+            0,
+            Some(("23:00", "07:30")),
+        );
+        assert_eq!(
+            next_fire(at(21, 22, 0), &s),
+            Some(Fire {
+                at: at(22, 8, 0),
+                kind: Quote
+            })
+        );
     }
 
     #[test]

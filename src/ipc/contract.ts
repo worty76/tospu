@@ -50,5 +50,5 @@ export const COMMANDS = {
 } as const;
 
 export const EVENTS = {
-  show: "yub://show",
+  show: "tospu://show",
 } as const;
