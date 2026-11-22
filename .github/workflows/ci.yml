@@ -7,9 +7,20 @@ on:
 
 jobs:
   check:
-    runs-on: macos-latest
+    name: check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Linux system packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -26,12 +37,14 @@ jobs:
         run: trunk build --config ui/Trunk.toml
 
       - name: Check formatting
+        if: runner.os == 'Linux'
         run: cargo fmt --all --check
 
       - name: Clippy (native workspace)
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Clippy (wasm UI)
+        if: runner.os == 'Linux'
         run: cargo clippy -p tospu-ui --target wasm32-unknown-unknown -- -D warnings
 
       - name: Run tests
