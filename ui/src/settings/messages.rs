@@ -191,13 +191,16 @@ pub fn MessagesTab() -> impl IntoView {
                                 type="button"
                                 class="btn secondary"
                                 on:click=move |_| {
-                                    store.run(async {
-                                        ipc::invoke::<_, serde_json::Value>(
-                                            "reload_files",
-                                            &EmptyArgs {},
-                                        )
-                                        .await
-                                    });
+                                    store.run_then(
+                                        async {
+                                            ipc::invoke::<_, tospu_model::SettingsView>(
+                                                "reload_files",
+                                                &EmptyArgs {},
+                                            )
+                                            .await
+                                        },
+                                        move |fresh| store.view.set(Some(fresh)),
+                                    );
                                 }
                             >
                                 "Reload files"
