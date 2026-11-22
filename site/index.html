@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tospu, a companion that always motivates you</title>
+<meta name="description" content="Tospu is a tiny desktop companion for macOS. A few times a day it pops up in the corner of your screen with your goals, a good quote, or something to be grateful for, then lets you get back to work.">
+<meta property="og:title" content="Tospu, a companion that always motivates you">
+<meta property="og:description" content="A tiny friend that pops up with your big goals, then gets out of your way.">
+<meta property="og:image" content="assets/tospu-demo-poster.jpg">
+<meta name="theme-color" content="#f6f8fc">
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url(assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2) format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+:root {
+  --bg: #f6f8fc;
+  --ink: #0d1626;
+  --ink-2: #3b475c;
+  --muted: #6b778c;
+  --line: rgba(13, 22, 38, 0.08);
+  --card: #ffffff;
+  --sky: #cfe3ff;
+  --lilac: #e5dcff;
+  --peach: #ffe3d3;
+  --sun: #ffcf6b;
+  --coral: #ff8d6b;
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --shadow-sm: 0 0 0 1px var(--line), 0 2px 6px -2px rgba(31, 45, 80, 0.12);
+  --shadow-md: 0 0 0 1px var(--line), 0 18px 40px -22px rgba(31, 45, 80, 0.35);
+  --shadow-lg: 0 0 0 1px var(--line), 0 50px 100px -40px rgba(31, 45, 80, 0.45), 0 18px 40px -20px rgba(31, 45, 80, 0.22);
+  --r-lg: 28px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 17px/1.6 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img, video { display: block; max-width: 100%; }
+a { color: inherit; }
+:focus-visible { outline: 2.5px solid #5b7cff; outline-offset: 3px; border-radius: 10px; }
+.wrap { width: min(1180px, 100% - 48px); margin-inline: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.035em; text-wrap: balance; }
+h2 { font-size: clamp(34px, 4.4vw, 54px); line-height: 1.04; font-weight: 800; }
+h3 { font-size: 21px; line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; }
+p { margin: 0; }
+.lead { font-size: 19px; line-height: 1.6; color: var(--ink-2); max-width: 56ch; text-wrap: pretty; }
+.center { text-align: center; }
+.center .lead { margin-inline: auto; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  font: 700 16px/1 var(--font);
+  padding: 15px 24px; border-radius: 999px; text-decoration: none; border: 0; cursor: pointer;
+  transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-dark { background: var(--ink); color: #fff; box-shadow: 0 10px 24px -10px rgba(13, 22, 38, .7), inset 0 1px 0 rgba(255, 255, 255, .16); }
+.btn-dark:hover { background: #1b2740; }
+.btn-light { background: #fff; color: var(--ink); box-shadow: var(--shadow-sm); }
+.btn-light:hover { box-shadow: 0 0 0 1px rgba(13,22,38,.14), 0 8px 18px -10px rgba(31,45,80,.3); }
+.btn svg { flex: none; }
+
+/* ---------- nav ---------- */
+.nav { position: sticky; top: 0; z-index: 50; transition: background-color .25s, box-shadow .25s; }
+.nav.scrolled { background: rgba(246, 248, 252, .78); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 1px 0 var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 32px; height: 68px; }
+.logo { display: inline-flex; align-items: center; gap: 9px; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-decoration: none; }
+.logo-mark { width: 24px; height: 24px; border-radius: 8px; background: linear-gradient(135deg, var(--sun), var(--coral)); box-shadow: 0 4px 10px -2px rgba(255, 141, 107, .6), inset 0 1px 0 rgba(255,255,255,.5); position: relative; }
+.logo-mark::before, .logo-mark::after { content: ""; position: absolute; top: 9px; width: 3px; height: 4px; border-radius: 2px; background: #3a2414; }
+.logo-mark::before { left: 7px; } .logo-mark::after { right: 7px; }
+.nav-links { display: flex; gap: 28px; font-weight: 500; font-size: 15px; }
+.nav-links a { text-decoration: none; color: var(--ink-2); }
+.nav-links a:hover { color: var(--ink); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 18px; font-weight: 500; font-size: 15px; }
+.nav-right .gh { text-decoration: none; color: var(--ink-2); display: inline-flex; gap: 7px; align-items: center; }
+.nav-right .btn { padding: 10px 17px; font-size: 14.5px; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; padding: 72px 0 0; }
+.glow { position: absolute; inset: -68px 0 auto 0; height: 1180px; overflow: hidden; z-index: -1; pointer-events: none; }
+.glow span { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .9; }
+.glow .g1 { width: 760px; height: 540px; left: -160px; top: -140px; background: var(--sky); }
+.glow .g2 { width: 680px; height: 560px; right: -180px; top: -60px; background: var(--lilac); }
+.glow .g3 { width: 760px; height: 460px; left: 28%; top: 440px; background: var(--peach); }
+.glow::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 62%, var(--bg)); }
+.hero h1 { font-size: clamp(46px, 7vw, 88px); line-height: .98; letter-spacing: -0.05em; font-weight: 800; max-width: 14ch; margin: 0 auto 24px; }
+.hero .lead { font-size: 20px; max-width: 31em; margin: 0 auto 36px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.hero-note { margin-top: 18px; font-size: 14.5px; color: var(--muted); }
+
+.device {
+  position: relative; max-width: 1100px; margin: 68px auto 0; padding: 10px;
+  border-radius: 30px; background: rgba(255, 255, 255, .6);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.screen {
+  position: relative; aspect-ratio: 16 / 9.4; border-radius: 21px; overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 86% 8%, #ffd9c7 0, transparent 55%),
+    radial-gradient(90% 80% at 8% 100%, #a9c8ff 0, transparent 60%),
+    linear-gradient(160deg, #c9dcff, #e9d9ff 55%, #ffd8c9);
+  container-type: inline-size;
+  text-align: left;
+}
+.menubar { height: 3.1cqw; min-height: 22px; display: flex; align-items: center; gap: 1.6cqw; padding: 0 1.6cqw; background: rgba(255, 255, 255, .38); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); color: #1d2638; font: 500 clamp(9px, 1.15cqw, 13px)/1 -apple-system, system-ui, sans-serif; position: relative; z-index: 3; }
+.menubar b { font-weight: 700; }
+.menubar .r { margin-left: auto; display: flex; gap: 1.3cqw; align-items: center; }
+.tray { width: 1.35cqw; height: 1.35cqw; min-width: 11px; min-height: 11px; border: 1.5px solid currentColor; border-radius: 50%; position: relative; }
+.tray::before, .tray::after { content: ""; position: absolute; top: 30%; width: 18%; height: 18%; border-radius: 50%; background: currentColor; }
+.tray::before { left: 22%; } .tray::after { right: 22%; }
+.app { position: absolute; left: 6%; top: 12%; width: 57%; height: 74%; background: #fff; border-radius: 1.2cqw; overflow: hidden; box-shadow: 0 30px 60px -24px rgba(31, 45, 80, .45), 0 0 0 1px var(--line); z-index: 2; }
+.app-bar { height: 3.2cqw; display: flex; align-items: center; gap: .65cqw; padding: 0 1.3cqw; background: #f4f6f9; }
+.app-bar i { width: 1cqw; height: 1cqw; border-radius: 50%; display: block; }
+.app-bar i:nth-child(1) { background: #ff5f57; } .app-bar i:nth-child(2) { background: #febc2e; } .app-bar i:nth-child(3) { background: #28c840; }
+.app-body { padding: 2.3cqw 3cqw; color: #2b3446; font: clamp(9px, 1.4cqw, 16px)/1.65 -apple-system, system-ui, sans-serif; }
+.app-body h4 { margin: 0 0 1cqw; font-size: clamp(13px, 2.1cqw, 24px); letter-spacing: -0.01em; color: var(--ink); }
+.ln { height: .9cqw; min-height: 6px; border-radius: 6px; background: #eef1f5; margin: 1.15cqw 0; }
+@keyframes caret { 50% { opacity: 0; } }
+
+.corner { position: absolute; right: 5%; bottom: 6%; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; }
+.bubble {
+  position: relative; max-width: 25cqw; min-width: 150px; margin: 0 2.6cqw 1.3cqw 0; padding: 1.25cqw 1.6cqw;
+  background: #fff; color: #111827; border-radius: 1.7cqw;
+  font: 600 clamp(11px, 1.55cqw, 18px)/1.4 var(--font);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 40px -16px rgba(15, 23, 42, .45), 0 2px 6px rgba(15, 23, 42, .12);
+  opacity: 0; transform: translateY(8px) scale(.97); transform-origin: bottom right;
+  transition: opacity .25s ease, transform .4s cubic-bezier(.2, .9, .3, 1.2);
+}
+.bubble.show { opacity: 1; transform: none; }
+.bubble::after { content: ""; position: absolute; right: 2.4cqw; bottom: -8px; width: 16px; height: 16px; background: inherit; transform: rotate(45deg); border-radius: 3px; box-shadow: 5px 5px 8px -5px rgba(15, 23, 42, .25); }
+.sprite { display: block; background-repeat: no-repeat; filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .22)); transition: opacity .3s ease; }
+
+/* ---------- section rhythm ---------- */
+.section { padding: 136px 0 0; }
+.section-head { margin-bottom: 56px; }
+.section-head h2 { margin-bottom: 18px; }
+
+/* steps */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; list-style: none; margin: 0; padding: 0; counter-reset: step; }
+.step { background: var(--card); border-radius: var(--r-lg); padding: 30px; box-shadow: var(--shadow-md); counter-increment: step; display: flex; flex-direction: column; gap: 12px; }
+.step-num { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #8a4b1a; background: linear-gradient(135deg, #fff0cc, #ffd9c9); }
+.step-num::before { content: counter(step); }
+.step p { color: var(--ink-2); font-size: 16px; }
+.step-visual { margin-top: auto; padding-top: 16px; }
+.chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 999px; background: #f2f5fa; color: var(--ink-2); }
+.chip.on { background: #e7efff; color: #2747a8; }
+.mini-sched { display: grid; gap: 8px; }
+.mini-sched div { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 12px; background: #f6f8fb; font-size: 14.5px; font-weight: 600; }
+.mini-sched span { color: var(--muted); font-weight: 500; }
+.mini-pop { display: flex; align-items: flex-end; gap: 10px; justify-content: flex-end; }
+.mini-pop .say { background: #f2f5fa; padding: 10px 14px; border-radius: 16px 16px 4px 16px; font-weight: 600; font-size: 14.5px; line-height: 1.35; }
+.mini-pop .sprite { flex: none; }
+
+/* bento */
+.bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; }
+.tile { position: relative; background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow-md); padding: 30px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+.tile p { color: var(--ink-2); font-size: 16px; max-width: 42ch; }
+.t-quiet { grid-column: span 4; grid-row: span 2; }
+.t-focus { grid-column: span 2; }
+.t-hover { grid-column: span 2; }
+.t-words { grid-column: span 3; }
+.t-local { grid-column: span 3; }
+.tile-stage { margin-top: auto; padding-top: 18px; }
+
+.quiet-screen { position: relative; flex: 1; min-height: 340px; margin-top: 20px; border-radius: 20px; overflow: hidden; background: radial-gradient(90% 90% at 90% 0, #ffe0cf, transparent 60%), radial-gradient(80% 80% at 0 100%, #b9d2ff, transparent 60%), linear-gradient(160deg, #d6e4ff, #ece2ff); box-shadow: inset 0 0 0 1px var(--line); }
+.quiet-bar { position: absolute; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14.5px; font-weight: 600; color: var(--ink-2); z-index: 2; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch .track { width: 44px; height: 26px; border-radius: 999px; background: #c5ccd8; position: relative; transition: background-color .2s; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s cubic-bezier(.3,.9,.4,1.2); }
+.switch input:checked + .track { background: var(--ink); }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 2.5px solid #5b7cff; outline-offset: 3px; }
+.quiet-stage { position: absolute; right: 7%; bottom: 8%; display: flex; flex-direction: column; align-items: flex-end; }
+.quiet-bubble { position: relative; border: 0; cursor: pointer; text-align: left; max-width: 300px; margin: 0 30px 14px 0; padding: 14px 18px; border-radius: 20px; background: #fff; color: #111827; font: 600 17px/1.4 var(--font); box-shadow: 0 20px 40px -16px rgba(15,23,42,.45), 0 2px 6px rgba(15,23,42,.12); transition: transform .15s; }
+.quiet-bubble:hover { transform: translateY(-1px); }
+.quiet-bubble::after { content: ""; position: absolute; right: 28px; bottom: -8px; width: 16px; height: 16px; background: inherit; transform: rotate(45deg); border-radius: 3px; }
+.quiet-bubble.is-quiet { font-size: 19px; }
+.quiet-hint { position: absolute; left: 16px; bottom: 14px; font-size: 14px; color: var(--ink-2); max-width: 46%; }
+kbd { font: 700 13px/1 var(--font); padding: 4px 7px; border-radius: 7px; background: #fff; box-shadow: 0 0 0 1px var(--line), 0 2px 0 rgba(13,22,38,.12); color: var(--ink); }
+
+.type-win { border-radius: 16px; background: #f7f9fc; box-shadow: inset 0 0 0 1px var(--line); padding: 16px 16px 56px; position: relative; min-height: 140px; font-size: 14.5px; line-height: 1.55; color: var(--ink-2); }
+.type-win .typed::after { content: ""; display: inline-block; width: 1.5px; height: 1.05em; vertical-align: -0.15em; margin-left: 1px; background: var(--ink); animation: caret 1s steps(1) infinite; }
+.type-win .float { position: absolute; right: 12px; bottom: 12px; background: #fff; border-radius: 14px; padding: 8px 12px; font-weight: 600; font-size: 13.5px; color: var(--ink); box-shadow: 0 12px 24px -12px rgba(15,23,42,.45), 0 0 0 1px var(--line); }
+
+.ring-demo { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #f7f9fc; box-shadow: inset 0 0 0 1px var(--line); }
+.ring { flex: none; width: 40px; height: 40px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 4; }
+.ring .bg { stroke: #e3e8f0; }
+.ring .fg { stroke: var(--ink); stroke-linecap: round; stroke-dasharray: 113; animation: countdown 6s linear infinite; }
+.ring-demo:hover .fg, .ring-demo:focus-within .fg, .ring-demo:focus .fg { animation-play-state: paused; }
+.ring-demo .say { font-weight: 600; font-size: 15px; line-height: 1.35; }
+.ring-demo small { display: block; color: var(--muted); font-weight: 500; font-size: 13px; margin-top: 2px; }
+@keyframes countdown { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 113; } }
+
+.msg-list { display: grid; gap: 1px; border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); background: var(--line); }
+.msg { display: grid; grid-template-columns: 40px 86px 1fr; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; font-size: 15px; }
+.msg .tg { width: 34px; height: 20px; border-radius: 999px; background: var(--ink); position: relative; }
+.msg .tg::after { content: ""; position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+.msg .k { font-size: 13px; font-weight: 700; color: #a0571f; }
+.msg .t { filter: blur(5px); transition: filter .2s ease; }
+.msg:hover .t, .msg:focus .t { filter: none; }
+.msg:focus { outline: none; box-shadow: inset 0 0 0 2px #5b7cff; }
+
+.local-art { display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 16px; background: #f7f9fc; box-shadow: inset 0 0 0 1px var(--line); }
+.local-art .lock { flex: none; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: linear-gradient(135deg, #e7efff, #efe7ff); }
+.local-art code { font: 600 13.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink-2); word-break: break-all; }
+
+/* companions */
+.pals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.pals > * { min-width: 0; }
+.pal { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 30px 20px 26px; border: 0; border-radius: var(--r-lg); background: var(--tint, #fff); box-shadow: var(--shadow-md); font: inherit; color: inherit; cursor: pointer; text-align: center; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease; }
+.pal:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px var(--line), 0 26px 50px -24px rgba(31,45,80,.45); }
+.pal .stage { height: 170px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 12px; }
+.pal strong { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.pal small { font-size: 14.5px; color: var(--ink-2); }
+.pal-yours { background: transparent; box-shadow: inset 0 0 0 2px rgba(13,22,38,.12); }
+.pal-yours:hover { box-shadow: inset 0 0 0 2px rgba(13,22,38,.22); }
+.pal-yours .ghost { width: 120px; height: 120px; border-radius: 42% 42% 36% 36%; border: 2px dashed rgba(13,22,38,.25); display: grid; place-items: center; font-size: 44px; font-weight: 300; color: var(--muted); }
+.pals-note { margin-top: 18px; color: var(--muted); font-size: 15px; text-align: center; }
+
+/* contribute */
+.contrib { position: relative; overflow: hidden; border-radius: 36px; padding: 64px; background: radial-gradient(70% 90% at 100% 0, #ffe1d1, transparent 60%), radial-gradient(70% 90% at 0 100%, #d6e5ff, transparent 60%), #fff; box-shadow: var(--shadow-lg); display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: start; }
+.contrib h2 { margin-bottom: 18px; }
+.contrib .lead { margin-bottom: 30px; }
+.contrib .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.contrib ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: c; }
+.contrib li { counter-increment: c; background: rgba(255,255,255,.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 20px; padding: 20px 22px 20px 64px; position: relative; box-shadow: 0 0 0 1px var(--line); }
+.contrib li::before { content: counter(c); position: absolute; left: 20px; top: 20px; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; font-size: 14px; background: var(--ink); color: #fff; }
+.contrib li h3 { font-size: 17.5px; margin-bottom: 4px; }
+.contrib li p { font-size: 15px; color: var(--ink-2); }
+.contrib > *, .contrib li, .contrib li > div { min-width: 0; }
+.contrib pre { margin: 12px 0 0; padding: 14px 16px; border-radius: 14px; background: #0f1729; color: #dbe3f4; font: 13px/1.6 ui-monospace, "SF Mono", Menlo, monospace; overflow-x: auto; }
+.contrib p code { font: 600 0.92em ui-monospace, "SF Mono", Menlo, monospace; background: #eef2f8; padding: 1px 6px; border-radius: 6px; }
+
+/* video */
+.video-frame { padding: 10px; border-radius: 30px; background: rgba(255,255,255,.7); box-shadow: var(--shadow-lg); max-width: 1000px; margin: 0 auto; }
+.video-frame video { border-radius: 21px; width: 100%; height: auto; background: #1d222a; }
+
+/* faq */
+.faq { display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px; align-items: start; }
+.faq details { border-bottom: 1px solid var(--line); padding: 22px 0; }
+.faq details:first-of-type { border-top: 1px solid var(--line); }
+.faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 20px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: ""; flex: none; width: 24px; height: 24px; border-radius: 50%; background: #eef2f8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 7v10M7 12h10' stroke='%230d1626' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center/24px; transition: transform .25s ease; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin-top: 10px; color: var(--ink-2); max-width: 60ch; }
+
+/* final cta */
+.final { position: relative; text-align: center; padding: 150px 0 120px; overflow: hidden; }
+.final .glow { inset: auto 0 0 0; height: 640px; }
+.final .glow .g1 { left: 6%; top: 140px; } .final .glow .g2 { right: 2%; top: 180px; } .final .glow .g3 { display: none; }
+.final .glow::after { background: linear-gradient(var(--bg), transparent 45%); }
+.final h2 { font-size: clamp(38px, 5.4vw, 66px); margin-bottom: 18px; }
+.final .lead { margin: 0 auto 34px; }
+.final .trio { display: flex; justify-content: center; align-items: flex-end; gap: 26px; margin-bottom: 30px; height: 120px; }
+
+footer { border-top: 1px solid var(--line); padding: 34px 0 50px; color: var(--muted); font-size: 14.5px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: center; justify-content: space-between; }
+footer .logo { color: var(--ink); font-size: 17px; }
+footer nav { display: flex; gap: 22px; }
+footer a { text-decoration: none; } footer nav a:hover { color: var(--ink); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1000px) {
+  .steps { grid-template-columns: 1fr; }
+  .bento { grid-template-columns: 1fr 1fr; }
+  .t-quiet, .t-words, .t-local { grid-column: span 2; }
+  .t-focus, .t-hover { grid-column: span 1; }
+  .pals { grid-template-columns: 1fr 1fr; }
+  .contrib { grid-template-columns: 1fr; padding: 44px; }
+  .faq { grid-template-columns: 1fr; gap: 28px; }
+}
+@media (max-width: 680px) {
+  .wrap { width: min(1180px, 100% - 36px); }
+  .nav-links, .nav-right .gh { display: none; }
+  .hero { padding-top: 44px; }
+  .device { padding: 6px; border-radius: 20px; margin-top: 48px; }
+  .screen { border-radius: 15px; aspect-ratio: 4 / 4.4; }
+  .app { width: 80%; height: 46%; left: 10%; top: 10%; }
+  .bubble { max-width: 62cqw; }
+  .section { padding-top: 96px; }
+  .bento { grid-template-columns: 1fr; }
+  .t-quiet, .t-words, .t-local, .t-focus, .t-hover { grid-column: auto; }
+  .tile { padding: 24px; }
+  .quiet-screen { min-height: 380px; }
+  .quiet-hint { max-width: none; right: 16px; top: 54px; bottom: auto; }
+  .msg { grid-template-columns: 40px 1fr; } .msg .k { display: none; }
+  .contrib { padding: 28px; border-radius: 26px; }
+  .pal { padding: 22px 10px 20px; }
+  .pal .stage { height: 110px; }
+  .pal small { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><span class="logo-mark" aria-hidden="true"></span>Tospu</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#companions">Companions</a>
+      <a href="#contribute">Contribute</a>
+    </nav>
+    <div class="nav-right">
+      <a class="gh" href="https://github.com/worty76/tospu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-dark" href="https://github.com/worty76/tospu/releases/latest">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero center" aria-labelledby="hero-title">
+    <div class="glow" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
+    <div class="wrap">
+      <h1 id="hero-title">A companion that always motivates you.</h1>
+      <p class="lead">A tiny friend pops up in the corner of your Mac with your big goals, a good quote, or something to be grateful for. Then it lets you get back to work.</p>
+      <div class="hero-actions">
+        <a class="btn btn-dark" href="https://github.com/worty76/tospu/releases/latest">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31a4.05 4.05 0 0 0-3.18-1.72c-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76a4.25 4.25 0 0 0-3.590 2.18c-1.53 2.66-.39 6.6 1.1 8.75.73 1.05 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13a9.3 9.3 0 0 0 1.2-2.47 3.84 3.84 0 0 1-2.29-3.52ZM14.2 6.13a3.86 3.86 0 0 0 .89-2.78 3.94 3.94 0 0 0-2.55 1.32 3.690 3.690 0 0 0-.91 2.68 3.26 3.26 0 0 0 2.57-1.22Z"/></svg>
+          Download for macOS
+        </a>
+        <a class="btn btn-light" href="https://github.com/worty76/tospu">View on GitHub</a>
+      </div>
+      <p class="hero-note">Free for macOS. Your messages stay on your Mac.</p>
+
+      <div class="device">
+        <div class="screen">
+          <div class="menubar" aria-hidden="true"><b>Notes</b><span>File</span><span>Edit</span><span>View</span><span class="r"><span class="tray"></span><span id="clock">9:41</span></span></div>
+          <div class="app" aria-hidden="true">
+            <div class="app-bar"><i></i><i></i><i></i></div>
+            <div class="app-body">
+              <h4>Thesis, chapter 3</h4>
+              <p>This chapter describes how the survey data was collected and cleaned before analysis.</p>
+              <div class="ln" style="width:92%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:88%"></div><div class="ln" style="width:58%"></div>
+            </div>
+          </div>
+          <div class="corner" id="hero-corner" aria-hidden="true">
+            <div class="bubble"><span class="txt"></span></div>
+            <div class="sprite"></div>
+          </div>
+        </div>
+      </div>
+      <p class="sr-only">Animation: while someone writes in a notes app, a companion pops up in the bottom-right corner of the screen, types a short encouraging message in a speech bubble, then falls asleep and leaves.</p>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head center">
+        <h2 id="how-title">Set it up once. Feel it every day.</h2>
+        <p class="lead">No streaks to protect and no app to open. Tospu shows up at the right moment and leaves before it gets in the way.</p>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num" aria-hidden="true"></span>
+          <h3>Write what matters to you</h3>
+          <p>Your big goals, quotes you love, things you're grateful for, and things you're proud of.</p>
+          <div class="step-visual chip-list" aria-hidden="true">
+            <span class="chip on">Goals</span><span class="chip">Quotes</span><span class="chip">Gratitude</span><span class="chip">Pride</span>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num" aria-hidden="true"></span>
+          <h3>Pick when it visits</h3>
+          <p>A few set times a day or every so often, with a little randomness so it never feels robotic.</p>
+          <div class="step-visual mini-sched" aria-hidden="true">
+            <div>9:00 <span>Goal</span></div><div>14:30 <span>Quote</span></div><div>21:00 <span>Gratitude</span></div>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num" aria-hidden="true"></span>
+          <h3>A friend pops up, then leaves</h3>
+          <p>It waves, says one thing, cheers you on and slips away after a few seconds.</p>
+          <div class="step-visual mini-pop" aria-hidden="true">
+            <span class="say">You kept going on the hard days. That counts.</span>
+            <span class="sprite" data-still="watermelon-dog" data-h="74"></span>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head center">
+        <h2 id="features-title">Encouraging, never interrupting</h2>
+        <p class="lead">It's built to sit quietly next to your work, even when other people can see your screen.</p>
+      </div>
+      <div class="bento">
+        <article class="tile t-quiet">
+          <h3>Quiet mode for shared spaces</h3>
+          <p>Friends or coworkers nearby? Only “Keep going.” appears until you click it. Switch it on with <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>Y</kbd>.</p>
+          <div class="quiet-screen">
+            <div class="quiet-bar">
+              <span>Try it</span>
+              <label class="switch"><input type="checkbox" id="quiet-toggle" checked><span class="track" aria-hidden="true"></span>Quiet mode</label>
+            </div>
+            <div class="quiet-stage">
+              <button class="quiet-bubble is-quiet" id="quiet-bubble" type="button" aria-live="polite">Keep going.</button>
+              <div class="sprite" id="quiet-sprite" aria-hidden="true"></div>
+            </div>
+            <p class="quiet-hint" id="quiet-hint">Click the bubble to see the real message.</p>
+          </div>
+        </article>
+
+        <article class="tile t-focus">
+          <h3>It never takes focus</h3>
+          <p>Keep typing. Clicks pass straight through everything except the bubble.</p>
+          <div class="tile-stage">
+            <div class="type-win" aria-hidden="true"><span class="typed" id="focus-typed"></span><span class="float">Keep going.</span></div>
+          </div>
+        </article>
+
+        <article class="tile t-hover">
+          <h3>Hover to keep it around</h3>
+          <p>The countdown pauses while your pointer rests on the bubble.</p>
+          <div class="tile-stage">
+            <div class="ring-demo" tabindex="0" aria-label="Example bubble. Hover or focus it to pause the countdown.">
+              <svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle class="bg" cx="20" cy="20" r="18"/><circle class="fg" cx="20" cy="20" r="18"/></svg>
+              <span class="say">Small steps every day add up.<small>Hover me to pause</small></span>
+            </div>
+          </div>
+        </article>
+
+        <article class="tile t-words">
+          <h3>In your own words</h3>
+          <p>Switch any message off for a while without deleting it. In Settings the text stays blurred until you point at it.</p>
+          <div class="tile-stage">
+            <div class="msg-list">
+              <div class="msg" tabindex="0"><span class="tg" aria-hidden="true"></span><span class="k">Goal</span><span class="t">Finish my thesis by June</span></div>
+              <div class="msg" tabindex="0"><span class="tg" aria-hidden="true"></span><span class="k">Quote</span><span class="t">Small steps every day add up to big results.</span></div>
+              <div class="msg" tabindex="0"><span class="tg" aria-hidden="true"></span><span class="k">Gratitude</span><span class="t">The people who believe in you</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="tile t-local">
+          <h3>Stays on your Mac</h3>
+          <p>No account and no tracking. Your messages are plain files you can back up or edit, and Tospu only goes online when you check for updates.</p>
+          <div class="tile-stage">
+            <div class="local-art">
+              <span class="lock" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="#2747a8" stroke-width="1.8" stroke-linecap="round" d="M7 10V8a5 5 0 0 1 10 0v2M6 10h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Zm6 4v2"/></svg></span>
+              <code>~/Library/Application Support/<wbr>io.github.worty76.tospu/content.json</code>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="companions" aria-labelledby="pals-title">
+    <div class="wrap">
+      <div class="section-head center">
+        <h2 id="pals-title">Choose who cheers you on</h2>
+        <p class="lead">Every companion is just a folder with a sprite sheet. Switch between them from the menu bar.</p>
+      </div>
+      <div class="pals">
+        <button class="pal" type="button" data-pack="meow-okay" style="--tint:linear-gradient(180deg,#fff4ea,#fff)"><span class="stage"><span class="sprite"></span></span><strong>Meow Okay</strong><small>Thumbs up, always</small></button>
+        <button class="pal" type="button" data-pack="pip" style="--tint:linear-gradient(180deg,#eef4ff,#fff)"><span class="stage"><span class="sprite"></span></span><strong>Pip</strong><small>Never without a lollipop</small></button>
+        <button class="pal" type="button" data-pack="watermelon-dog" style="--tint:linear-gradient(180deg,#eefbf1,#fff)"><span class="stage"><span class="sprite"></span></span><strong>Watermelon Dog</strong><small>Wears a fruit, means well</small></button>
+        <a class="pal pal-yours" href="#contribute"><span class="stage"><span class="ghost" aria-hidden="true">+</span></span><strong>Yours?</strong><small>Make one and send it in</small></a>
+      </div>
+      <p class="pals-note">Click a companion to see it cheer.</p>
+    </div>
+  </section>
+
+  <section class="section" id="contribute" aria-labelledby="contrib-title">
+    <div class="wrap">
+      <div class="contrib">
+        <div>
+          <h2 id="contrib-title">Made a companion of your own?</h2>
+          <p class="lead">Add it to the project and open a pull request. Contributions are welcome, and we'd love to see what you create.</p>
+          <div class="actions">
+            <a class="btn btn-dark" href="https://github.com/worty76/tospu/blob/main/CONTRIBUTING.md">How to contribute</a>
+            <a class="btn btn-light" href="https://github.com/worty76/tospu/blob/main/docs/creating-a-sprite-pack.md">Read the sprite guide</a>
+          </div>
+        </div>
+        <ol>
+          <li><div><h3>Draw or generate a sprite sheet</h3><p>Four strips on a flat magenta background: idle, wave, cheer and sleep. The guide includes a ready-made prompt.</p></div></li>
+          <li><div><h3>Slice it into a pack</h3><p>The slicer cuts the frames, removes the background and writes the manifest.</p>
+<pre><code>python3 tools/slice_sprites.py my-buddy.png \
+  --id my-buddy --name "My Buddy" --out sprites</code></pre></div></li>
+          <li><div><h3>Open a pull request</h3><p>Add your folder under <code>sprites/</code>. Please share only art you made or have permission to share.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="watch-title">
+    <div class="wrap">
+      <div class="section-head center">
+        <h2 id="watch-title">Spend a day with Tospu</h2>
+        <p class="lead">Under a minute, no sound needed.</p>
+      </div>
+      <div class="video-frame">
+        <video controls muted playsinline preload="none" poster="assets/tospu-demo-poster.jpg" width="1280" height="720">
+          <source src="assets/tospu-demo.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq">
+      <div>
+        <h2 id="faq-title">Questions</h2>
+        <p class="lead" style="margin-top:16px">Something else? <a href="https://github.com/worty76/tospu/issues">Open an issue on GitHub.</a></p>
+      </div>
+      <div>
+        <details><summary>Is Tospu free?</summary><p>Yes. Download it from the releases page, or build it yourself from the source on GitHub.</p></details>
+        <details><summary>Which computers does it run on?</summary><p>macOS today. The code is written with Windows and Linux in mind, and those builds are on the way.</p></details>
+        <details><summary>Does it send my messages anywhere?</summary><p>No. Your messages and settings are plain files in a folder on your Mac. The only network request is the update check, and only when you ask for it.</p></details>
+        <details><summary>Will it pop up during my meeting?</summary><p>Set quiet hours, or press <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>Y</kbd> to turn on quiet mode so only “Keep going.” shows. Either way it never steals focus.</p></details>
+        <details><summary>Can I write messages in my own language?</summary><p>Yes. Messages can be in any language, accents and emoji included.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" aria-labelledby="final-title">
+    <div class="glow" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
+    <div class="wrap">
+      <div class="trio" aria-hidden="true">
+        <span class="sprite" data-loop="meow-okay" data-h="100"></span>
+        <span class="sprite" data-loop="pip" data-h="110"></span>
+        <span class="sprite" data-loop="watermelon-dog" data-h="100"></span>
+      </div>
+      <h2 id="final-title">Give your goals a friend.</h2>
+      <p class="lead">Free for macOS. Set up in a minute.</p>
+      <a class="btn btn-dark" href="https://github.com/worty76/tospu/releases/latest">Download for macOS</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#top"><span class="logo-mark" aria-hidden="true"></span>Tospu</a>
+    <nav aria-label="Footer">
+      <a href="https://github.com/worty76/tospu">GitHub</a>
+      <a href="https://github.com/worty76/tospu/releases">Releases</a>
+      <a href="https://github.com/worty76/tospu/issues">Report a problem</a>
+    </nav>
+    <span>Made with Rust, Tauri and Leptos. Companion artwork belongs to its creators.</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const BASE = "assets/companions/";
+  // Frame sizes and animations mirror each pack's manifest.json in sprites/.
+  const PACKS = { "meow-okay": [264, 199], "pip": [236, 204], "watermelon-dog": [278, 202] };
+  const ANIMS = {
+    idle:  ["idle.png", 6, 8, true],
+    enter: ["wave.png", 8, 12],
+    cheer: ["cheer.png", 8, 12],
+    exit:  ["sleep.png", 6, 8],
+  };
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  for (const p in PACKS) for (const k in ANIMS) { const im = new Image(); im.src = BASE + p + "/" + ANIMS[k][0]; }
+
+  class Sprite {
+    constructor(el) { this.el = el; this.token = 0; }
+    use(pack, height) {
+      const [w, h] = PACKS[pack];
+      this.pack = pack;
+      this.el.style.height = height + "px";
+      this.el.style.width = Math.round((w / h) * height) + "px";
+      return this;
+    }
+    frame(name, i) {
+      const [sheet, n] = ANIMS[name];
+      const s = this.el.style;
+      s.backgroundImage = `url(${BASE}${this.pack}/${sheet})`;
+      s.backgroundSize = `${n * 100}% 100%`;
+      s.backgroundPosition = `${(i / (n - 1)) * 100}% 0`;
+      return this;
+    }
+    play(name) {
+      const [, n, fps, loop] = ANIMS[name];
+      const token = ++this.token;
+      if (reduced) { this.frame("idle", 0); return Promise.resolve(); }
+      return new Promise((done) => {
+        const t0 = performance.now();
+        const tick = (now) => {
+          if (token !== this.token) return done();
+          const i = Math.floor(((now - t0) / 1000) * fps);
+          if (!loop && i >= n) { this.frame(name, n - 1); return done(); }
+          this.frame(name, loop ? i % n : i);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    }
+  }
+
+  async function typeInto(el, text, speed = 26) {
+    if (reduced) { el.textContent = text; return; }
+    el.textContent = "";
+    for (const ch of Array.from(text)) { el.textContent += ch; await wait(speed); }
+  }
+
+  /* nav background on scroll */
+  const nav = document.getElementById("nav");
+  const onScroll = () => nav.classList.toggle("scrolled", scrollY > 8);
+  addEventListener("scroll", onScroll, { passive: true }); onScroll();
+
+  /* hero: companions take turns, like the real app */
+  const SCRIPT = [
+    { pack: "meow-okay", time: "9:41", text: "Big goal: Finish my thesis by June", mood: "cheer" },
+    { pack: "pip", time: "14:30", text: "Small steps every day add up to big results.", mood: "idle" },
+    { pack: "watermelon-dog", time: "17:10", text: "Grateful for: the people who believe in you.", mood: "idle" },
+    { pack: "meow-okay", time: "21:30", text: "You kept going on the hard days. That counts.", mood: "cheer" },
+  ];
+  const corner = document.getElementById("hero-corner");
+  const heroSprite = new Sprite(corner.querySelector(".sprite"));
+  const bubble = corner.querySelector(".bubble");
+  const bubbleText = bubble.querySelector(".txt");
+  const clock = document.getElementById("clock");
+  const screen = corner.closest(".screen");
+  let hovering = false;
+  bubble.addEventListener("mouseenter", () => (hovering = true));
+  bubble.addEventListener("mouseleave", () => (hovering = false));
+  const spriteHeight = () => Math.max(84, Math.min(170, screen.clientWidth * 0.15));
+
+  async function hero() {
+    if (reduced) {
+      heroSprite.use("meow-okay", spriteHeight()).frame("idle", 0);
+      bubbleText.textContent = SCRIPT[0].text; bubble.classList.add("show");
+      return;
+    }
+    await wait(700);
+    for (let k = 0; ; k = (k + 1) % SCRIPT.length) {
+      const m = SCRIPT[k];
+      clock.textContent = m.time;
+      heroSprite.use(m.pack, spriteHeight());
+      heroSprite.el.style.opacity = 1;
+      await heroSprite.play("enter");
+      heroSprite.play("idle");
+      bubble.classList.add("show");
+      await typeInto(bubbleText, m.text);
+      if (m.mood === "cheer") { await heroSprite.play("cheer"); heroSprite.play("idle"); }
+      for (let left = 4000; left > 0;) { await wait(100); if (!hovering) left -= 100; }
+      bubble.classList.remove("show");
+      await heroSprite.play("exit");
+      heroSprite.el.style.opacity = 0;
+      await wait(1400);
+    }
+  }
+  hero();
+
+  /* step 3 still */
+  document.querySelectorAll("[data-still]").forEach((el) => new Sprite(el).use(el.dataset.still, +el.dataset.h).frame("idle", 0));
+
+  /* "never takes focus" typing loop */
+  const typed = document.getElementById("focus-typed");
+  (async () => {
+    const lines = ["Q3 plan: finish the onboarding flow, then fix the slow search query.", "Dear Mai, thanks so much for the feedback on chapter two."];
+    if (reduced) { typed.textContent = lines[0]; return; }
+    for (let k = 0; ; k = (k + 1) % lines.length) {
+      await typeInto(typed, lines[k], 55);
+      await wait(1800);
+      typed.textContent = "";
+      await wait(400);
+    }
+  })();
+
+  /* quiet mode toy */
+  const qs = new Sprite(document.getElementById("quiet-sprite")).use("pip", 130);
+  qs.play("idle");
+  const qb = document.getElementById("quiet-bubble");
+  const qt = document.getElementById("quiet-toggle");
+  const qh = document.getElementById("quiet-hint");
+  const REAL = "Big goal: Run my first half marathon";
+  let revealed = false;
+  function resetQuiet() {
+    revealed = false;
+    qb.classList.toggle("is-quiet", qt.checked);
+    qb.textContent = qt.checked ? "Keep going." : REAL;
+    qh.textContent = qt.checked ? "Click the bubble to see the real message." : "Quiet mode is off, so the message shows right away.";
+  }
+  qt.addEventListener("change", resetQuiet);
+  qb.addEventListener("click", async () => {
+    if (!qt.checked) { await qs.play("cheer"); qs.play("idle"); return; }
+    if (revealed) { resetQuiet(); return; }
+    revealed = true;
+    qb.classList.remove("is-quiet");
+    qh.textContent = "Click again to hide it.";
+    await typeInto(qb, REAL);
+    await qs.play("cheer"); qs.play("idle");
+  });
+
+  /* companion cards */
+  const small = matchMedia("(max-width: 680px)").matches;
+  document.querySelectorAll("button.pal").forEach((btn, i) => {
+    const s = new Sprite(btn.querySelector(".sprite")).use(btn.dataset.pack, small ? 88 : 150).frame("idle", 0);
+    setTimeout(() => s.play("idle"), i * 230);
+    btn.addEventListener("click", async () => { await s.play("cheer"); s.play("idle"); });
+  });
+
+  /* final trio */
+  document.querySelectorAll("[data-loop]").forEach((el, i) => {
+    const s = new Sprite(el).use(el.dataset.loop, +el.dataset.h).frame("idle", 0);
+    setTimeout(() => s.play("idle"), i * 300);
+  });
+})();
+</script>
+</body>
+</html>
