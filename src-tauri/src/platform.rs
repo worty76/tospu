@@ -7,6 +7,7 @@
 ///   with `TOSPU_WAYLAND=1` or picked a GDK backend themselves.
 /// - WebKitGTK's DMA-BUF renderer shows blank windows on some GPU drivers and
 ///   VMs; turn it off unless the user already chose.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn linux_env_fixes(get: impl Fn(&str) -> Option<String>) -> Vec<(&'static str, &'static str)> {
     let mut out = Vec::new();
     let on_wayland = get("WAYLAND_DISPLAY").is_some_and(|v| !v.is_empty());
