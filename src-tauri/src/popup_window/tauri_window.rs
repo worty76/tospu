@@ -1,12 +1,20 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{LogicalPosition, LogicalSize, Monitor, WebviewWindow};
+#[cfg(not(target_os = "macos"))]
+use tauri::PhysicalPosition;
+use tauri::Position;
+#[cfg(target_os = "macos")]
+use tauri::{LogicalPosition, LogicalSize};
+use tauri::{Monitor, WebviewWindow};
 use tospu_core::{DisplayTarget, MonitorInfo};
 
 use super::PopupWindow;
 
 /// Gap between the popup and the screen edge, in logical px.
 const MARGIN: f64 = 16.0;
+/// Logical size of the popup window; keep in sync with `tauri.conf.json`.
+#[cfg(not(target_os = "macos"))]
+const POPUP_SIZE: (f64, f64) = (420.0, 340.0);
 
 pub struct TauriPopupWindow {
     window: WebviewWindow,
@@ -82,10 +90,45 @@ impl TauriPopupWindow {
         }
     }
 
-    fn move_to_corner(&self, target: &DisplayTarget) -> tauri::Result<()> {
+    /// Moves the window to the corner and returns the position it set
+    /// (`None` on macOS or when there is no monitor).
+    fn move_to_corner(&self, target: &DisplayTarget) -> tauri::Result<Option<Position>> {
         let Some(monitor) = self.pick_monitor(target)? else {
-            return Ok(());
+            return Ok(None);
         };
+        #[cfg(not(target_os = "macos"))]
+        {
+            // Work in the target monitor's physical pixels: a logical position
+            // would be converted with the window's current scale, which is
+            // wrong when monitors use different scaling (common on Windows).
+            let m_scale = monitor.scale_factor();
+            let area = monitor.work_area();
+            let w_scale = self.window.scale_factor()?;
+            let size = self.window.outer_size()?;
+            // Before its first show GTK reports a placeholder size; fall back
+            // to the size set in tauri.conf.json.
+            let (logical_w, logical_h) = if size.width < 100 || size.height < 100 {
+                POPUP_SIZE
+            } else {
+                (size.width as f64 / w_scale, size.height as f64 / w_scale)
+            };
+            let win_w = logical_w * m_scale;
+            let win_h = logical_h * m_scale;
+            let margin = MARGIN * m_scale;
+            let x = area.position.x as f64 + area.size.width as f64 - win_w - margin;
+            let y = area.position.y as f64 + area.size.height as f64 - win_h - margin;
+            let pos = Position::Physical(PhysicalPosition::new(x.round() as i32, y.round() as i32));
+            self.window.set_position(pos)?;
+            Ok(Some(pos))
+        }
+        #[cfg(target_os = "macos")]
+        {
+            self.move_to_corner_logical(&monitor).map(|()| None)
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn move_to_corner_logical(&self, monitor: &Monitor) -> tauri::Result<()> {
         let m_scale = monitor.scale_factor().max(1.0);
         let area = monitor.work_area();
         let area_pos: LogicalPosition<f64> = area.position.to_logical(m_scale);
@@ -102,9 +145,17 @@ impl TauriPopupWindow {
 
 impl PopupWindow for TauriPopupWindow {
     fn show_at_corner(&self, target: &DisplayTarget) {
-        let _ = self.move_to_corner(target);
+        #[cfg_attr(not(target_os = "linux"), allow(unused_variables))]
+        let placed = self.move_to_corner(target);
         // `show` doesn't focus a window created with `focus: false`.
         let _ = self.window.show();
+        // X11 window managers place a never-shown window themselves and drop
+        // the earlier move, so apply the same position again once it is
+        // mapped. Don't recompute: GTK reports a placeholder size right now.
+        #[cfg(target_os = "linux")]
+        if let Ok(Some(pos)) = &placed {
+            let _ = self.window.set_position(*pos);
+        }
         let _ = self.window.set_always_on_top(true);
         // Force it on (not just on change): the window may be new.
         self.click_through.store(true, Ordering::Relaxed);

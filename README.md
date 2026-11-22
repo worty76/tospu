@@ -1,6 +1,6 @@
 # Tospu
 
-A tiny, gentle desktop companion for your Mac.
+A tiny, gentle desktop companion for macOS, Windows and Linux.
 
 A few times a day (or on any schedule you pick), a cute character pops into the corner of your screen with one of your **big goals**, a **quote**, something you're **grateful** for, or something to be **proud** of—then waves goodbye and disappears.
 
@@ -9,20 +9,22 @@ A few times a day (or on any schedule you pick), a cute character pops into the 
 ## Why Tospu?
 
 - **Private by default.**
-  - **Quiet mode** (`⌘⇧Y` on macOS, or from the menu bar) shows only `"Keep going."` until you click to reveal the real message—handy when sharing your screen or working around others.
+  - **Quiet mode** (`⌘⇧Y` on macOS, `Ctrl+Shift+Y` on Windows and Linux, or from the tray menu) shows only `"Keep going."` until you click to reveal the real message—handy when sharing your screen or working around others.
   - **Privacy blur** keeps your messages blurred in the Settings window until you hover over them.
   - **100% offline.** Everything stays in plain files on your computer. No accounts, no tracking, no internet required.
 - **Never interrupts your work.** Tospu never steals keyboard focus, clicks pass right through around the sprite and bubble, and quiet hours keep it asleep overnight.
 - **Your pace, your screen.** Pop up at specific times each day or every N minutes, and choose whether Tospu follows your cursor or stays on a specific monitor.
-- **Make it yours.** Add your own messages, switch characters anytime, or create your own character in minutes—your menu bar icon even changes to match your character.
+- **Make it yours.** Add your own messages, switch characters anytime, or create your own character in minutes—your menu bar or tray icon even changes to match your character.
 
-## Install (macOS)
+## Install
 
-Download the latest app from [Releases](https://github.com/worty76/tospu/releases/latest) and drag **Tospu** into Applications.
+Download the latest version from [Releases](https://github.com/worty76/tospu/releases/latest). Windows and Linux builds are in **beta**: they work, but have had less testing than the Mac app. If something looks wrong, please [open an issue](https://github.com/worty76/tospu/issues).
 
-Tospu ships for macOS today. **Windows and Linux versions are coming soon.**
+Tospu is **not code-signed yet**, so your system warns you the first time you open it. The source is all here, and you can build it yourself if you'd rather not bypass the warning (see the end of this page).
 
-Tospu is **not code-signed with an Apple Developer certificate yet**, so macOS blocks the first launch. To open it:
+### macOS (12 or later)
+
+Download the `.dmg` and drag **Tospu** into Applications. macOS blocks the first launch, so:
 
 1. Double-click Tospu. When macOS blocks it, click **Done**.
 2. Open **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to "Tospu was blocked". Confirm with your password.
@@ -35,14 +37,30 @@ If macOS says the app is "damaged", remove the download quarantine flag and open
 xattr -dr com.apple.quarantine /Applications/Tospu.app
 ```
 
-If you would rather not bypass anything, you can build it from source yourself (see the end of this page).
+### Windows 10 and 11 (beta)
+
+Download `Tospu_<version>_x64-setup.exe` and run it. Windows SmartScreen shows "Windows protected your PC": click **More info**, then **Run anyway**. Tospu appears in the system tray; if you don't see it, click the **^** arrow next to the clock.
+
+### Linux (beta)
+
+Pick one:
+
+- **AppImage** (any distribution): make it executable, then run it.
+  ```bash
+  chmod +x Tospu_*_amd64.AppImage
+  ./Tospu_*_amd64.AppImage
+  ```
+- **Debian / Ubuntu:** `sudo apt install ./Tospu_*_amd64.deb`
+- **Fedora / openSUSE:** `sudo dnf install ./Tospu-*.x86_64.rpm`
+
+Tospu needs a system tray. KDE, Xfce, Cinnamon and Ubuntu's GNOME have one; on other GNOME setups, install the *AppIndicator and KStatusNotifierItem Support* extension. On Wayland, Tospu runs through XWayland so it can place itself in the corner and follow your cursor; set `TOSPU_WAYLAND=1` to opt out.
 
 ## Using Tospu
 
-Tospu lives quietly in your menu bar. Click its icon to:
+Tospu lives quietly in your menu bar (macOS) or system tray (Windows, Linux). Click its icon to:
 
 - **Show one now** — call your companion whenever you want a quick boost.
-- **Quiet mode** — hide private text behind `"Keep going."` (`⌘⇧Y`).
+- **Quiet mode** — hide private text behind `"Keep going."` (`⌘⇧Y`, or `Ctrl+Shift+Y` on Windows and Linux).
 - **Character** — switch between installed companions.
 - **Settings…** — manage your messages, schedule, character, startup, and screen preferences.
 
@@ -71,7 +89,16 @@ Tospu is written in Rust with Tauri 2 and Leptos (WASM)—no Node.js or npm need
 
 ### Prerequisites
 
-Install Rust (stable), Xcode Command Line Tools (on macOS), and the build tools:
+Install Rust (stable) and your platform's build requirements:
+
+- **macOS:** Xcode Command Line Tools.
+- **Windows:** Microsoft C++ Build Tools and WebView2 (preinstalled on Windows 10 and 11).
+- **Linux (Debian/Ubuntu):**
+  ```bash
+  sudo apt install libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+  ```
+
+Then the build tools:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -83,7 +110,7 @@ cargo install tauri-cli --version "^2" --locked
 
 ```bash
 cargo tauri dev     # run in dev mode
-cargo tauri build   # build Tospu.app / .dmg
+cargo tauri build   # .dmg on macOS, .msi/.exe on Windows, .deb/.rpm/.AppImage on Linux
 ```
 
 ### Run checks & tests

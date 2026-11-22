@@ -17,8 +17,18 @@ const URI_COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'(')
     .remove(b')');
 
+/// Drops the `\\?\` verbatim prefix Windows sometimes puts on resolved
+/// paths; the asset protocol scope only matches plain `C:\...` paths.
+fn strip_verbatim_prefix(path: &str) -> &str {
+    match path.strip_prefix(r"\\?\") {
+        Some(rest) if !rest.starts_with("UNC\\") => rest,
+        _ => path,
+    }
+}
+
 pub fn asset_url(path: &Path) -> String {
-    let encoded = utf8_percent_encode(&path.to_string_lossy(), URI_COMPONENT).to_string();
+    let path = path.to_string_lossy();
+    let encoded = utf8_percent_encode(strip_verbatim_prefix(&path), URI_COMPONENT).to_string();
     #[cfg(windows)]
     {
         format!("http://asset.localhost/{encoded}")
@@ -32,6 +42,20 @@ pub fn asset_url(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn strips_windows_verbatim_prefix() {
+        assert_eq!(
+            strip_verbatim_prefix(r"\\?\C:\Program Files\Tospu\a.png"),
+            r"C:\Program Files\Tospu\a.png"
+        );
+        assert_eq!(strip_verbatim_prefix(r"C:\a.png"), r"C:\a.png");
+        assert_eq!(
+            strip_verbatim_prefix(r"\\?\UNC\srv\a.png"),
+            r"\\?\UNC\srv\a.png"
+        );
+        assert_eq!(strip_verbatim_prefix("/a/b.png"), "/a/b.png");
+    }
 
     #[cfg(not(windows))]
     #[test]

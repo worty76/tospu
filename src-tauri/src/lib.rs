@@ -1,6 +1,7 @@
 mod assets;
 mod commands;
 mod paths;
+mod platform;
 mod popup;
 mod popup_window;
 mod scheduler_loop;
@@ -10,7 +11,7 @@ mod tray;
 
 use tauri::{App, Manager};
 use tauri_plugin_autostart::MacosLauncher;
-use tauri_plugin_global_shortcut::ShortcutState;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 use crate::paths::Paths;
 use crate::popup::Popup;
@@ -19,6 +20,8 @@ use crate::state::AppState;
 const QUIET_SHORTCUT: &str = "CmdOrCtrl+Shift+Y";
 
 pub fn run() {
+    platform::prepare_environment();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
@@ -27,8 +30,6 @@ pub fn run() {
         ))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcuts([QUIET_SHORTCUT])
-                .expect("valid shortcut")
                 .with_handler(|app, _shortcut, event| {
                     if event.state == ShortcutState::Pressed {
                         tray::toggle_quiet_mode(app);
@@ -77,6 +78,12 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         .get_webview_window("popup")
         .ok_or("popup window missing from tauri.conf.json")?;
     app.manage(Popup::new(popup_window::create(window)));
+
+    // Registered here, not in the plugin builder, so a shortcut that can't be
+    // taken (another app owns it, or a Wayland session) doesn't stop startup.
+    if let Err(e) = app.global_shortcut().register(QUIET_SHORTCUT) {
+        eprintln!("[tospu] couldn't register {QUIET_SHORTCUT}: {e}");
+    }
 
     tray::create(app.handle())?;
     popup::spawn_hit_testing(app.handle().clone());

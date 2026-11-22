@@ -9,6 +9,22 @@ static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Atomically writes `bytes` to `path` by creating a temporary file in the same
 /// directory, syncing it to disk, and renaming it over `path`.
+/// On Windows, replacing a file fails while another process (an antivirus
+/// scan, a text editor) briefly holds it open, so retry a few times.
+fn rename_with_retry(from: &Path, to: &Path) -> io::Result<()> {
+    const ATTEMPTS: u32 = if cfg!(windows) { 5 } else { 1 };
+    let mut attempt = 1;
+    loop {
+        match fs::rename(from, to) {
+            Err(e) if attempt < ATTEMPTS && e.kind() == io::ErrorKind::PermissionDenied => {
+                std::thread::sleep(std::time::Duration::from_millis(40 * u64::from(attempt)));
+                attempt += 1;
+            }
+            other => return other,
+        }
+    }
+}
+
 pub fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent)?;
@@ -30,7 +46,7 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
         return Err(e);
     }
 
-    if let Err(e) = fs::rename(&tmp, path) {
+    if let Err(e) = rename_with_retry(&tmp, path) {
         let _ = fs::remove_file(&tmp);
         return Err(e);
     }
