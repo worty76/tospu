@@ -9,6 +9,33 @@ pub const MAX_SLOTS: usize = 12;
 pub const MIN_DISPLAY_SECONDS: u32 = 3;
 pub const MAX_DISPLAY_SECONDS: u32 = 60;
 pub const MAX_JITTER_MINUTES: u32 = 30;
+pub const MIN_INTERVAL_MINUTES: u32 = 1;
+pub const MAX_INTERVAL_MINUTES: u32 = 1440;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ScheduleMode {
+    #[default]
+    Daily,
+    Interval,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct IntervalSchedule {
+    pub every_minutes: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<MessageKind>,
+}
+
+impl Default for IntervalSchedule {
+    fn default() -> Self {
+        Self {
+            every_minutes: 30,
+            kind: None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Slot {
@@ -37,7 +64,9 @@ impl QuietHours {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    pub schedule_mode: ScheduleMode,
     pub slots: Vec<Slot>,
+    pub interval: IntervalSchedule,
     pub jitter_minutes: u32,
     pub quiet_hours: Option<QuietHours>,
     pub quiet_mode: bool,
@@ -54,11 +83,13 @@ impl Default for Settings {
             kind,
         };
         Self {
+            schedule_mode: ScheduleMode::Daily,
             slots: vec![
                 slot(9, MessageKind::Goal),
                 slot(14, MessageKind::Quote),
                 slot(21, MessageKind::Gratitude),
             ],
+            interval: IntervalSchedule::default(),
             jitter_minutes: 10,
             quiet_hours: Some(QuietHours {
                 start: HhMm::new(23, 0).unwrap(),
@@ -110,6 +141,12 @@ impl Settings {
 
         if self.active_pack.trim().is_empty() {
             errors.push("activePack: must not be empty".into());
+        }
+
+        if !(MIN_INTERVAL_MINUTES..=MAX_INTERVAL_MINUTES).contains(&self.interval.every_minutes) {
+            errors.push(format!(
+                "interval: must be between {MIN_INTERVAL_MINUTES} and {MAX_INTERVAL_MINUTES} minutes"
+            ));
         }
 
         if errors.is_empty() {
@@ -240,5 +277,22 @@ mod tests {
             errs.iter().any(|e| e.contains("activePack")),
             "expected activePack error, got {errs:?}"
         );
+
+        // interval = 0 and 1441 -> "interval"
+        for bad in [0, 1441] {
+            let s = Settings {
+                schedule_mode: ScheduleMode::Interval,
+                interval: IntervalSchedule {
+                    every_minutes: bad,
+                    kind: None,
+                },
+                ..Default::default()
+            };
+            let errs = s.validate().unwrap_err();
+            assert!(
+                errs.iter().any(|e| e.contains("interval")),
+                "expected interval error for {bad}, got {errs:?}"
+            );
+        }
     }
 }

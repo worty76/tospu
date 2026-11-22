@@ -18,7 +18,7 @@ pub use packs::{discover_packs, BrokenPack, Pack, PackScan};
 pub use picker::{Picker, FALLBACK_LINE};
 pub use scheduler::{next_fire, Fire};
 pub use tospu_model::{
-    ContentError, ContentFile, HhMm, Manifest, Message, MessageDraft, MessageItem, MessageKind,
-    OnboardingInput, PackSummary, PackView, QuietHours, Rect, Settings, SettingsView, ShowPayload,
-    Slot,
+    ContentError, ContentFile, HhMm, IntervalSchedule, Manifest, Message, MessageDraft,
+    MessageItem, MessageKind, OnboardingInput, PackSummary, PackView, QuietHours, Rect,
+    ScheduleMode, Settings, SettingsView, ShowPayload, Slot,
 };

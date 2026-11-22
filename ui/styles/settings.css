@@ -703,3 +703,10 @@ select:focus-visible,
   justify-content: flex-end;
   padding-bottom: 12px;
 }
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}

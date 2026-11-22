@@ -17,6 +17,6 @@ pub use kind::MessageKind;
 pub use manifest::{
     Anchor, AnimationName, AnimationSpec, Animations, Bubble, Frame, Manifest, RendererKind,
 };
-pub use settings::{QuietHours, Settings, Slot};
+pub use settings::{IntervalSchedule, QuietHours, ScheduleMode, Settings, Slot};
 pub use time::HhMm;
 pub use wire::{OnboardingInput, PackSummary, PackView, Rect, SettingsView, ShowPayload};

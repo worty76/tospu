@@ -1,8 +1,8 @@
 //! Decides WHEN the next popup happens. Pure: give it "now" and settings.
 
-use chrono::{Datelike, Duration, NaiveDateTime, Timelike};
+use chrono::{DateTime, Datelike, Duration, NaiveDateTime, Timelike};
 
-use tospu_model::{MessageKind, Settings};
+use tospu_model::{MessageKind, ScheduleMode, Settings};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Fire {
@@ -12,11 +12,50 @@ pub struct Fire {
 
 /// The first popup strictly after `now`, or `None` if nothing is scheduled.
 ///
-/// Each slot is shifted by a jitter that is random-looking but fixed for a
-/// given (date, slot), so re-planning after a settings reload or wake from
-/// sleep doesn't move today's popups around. Slots that land in quiet hours
-/// (after jitter) are skipped.
+/// In `Daily` mode, each slot is shifted by a jitter that is random-looking
+/// but fixed for a given (date, slot), so re-planning after a settings reload
+/// or wake from sleep doesn't move today's popups around.
+///
+/// In `Interval` mode, popups fire on exact `every_minutes` boundaries with no
+/// random shift, rotating through all four kinds unless a specific kind is set.
+///
+/// In both modes, popups that land inside quiet hours are skipped.
 pub fn next_fire(now: NaiveDateTime, s: &Settings) -> Option<Fire> {
+    match s.schedule_mode {
+        ScheduleMode::Daily => next_daily_fire(now, s),
+        ScheduleMode::Interval => next_interval_fire(now, s),
+    }
+}
+
+fn next_interval_fire(now: NaiveDateTime, s: &Settings) -> Option<Fire> {
+    let step = i64::from(s.interval.every_minutes.clamp(1, 1440));
+    let now_min = now.and_utc().timestamp().div_euclid(60);
+    let first_bucket = now_min.div_euclid(step) + 1;
+    let max_checks = (24 * 60 / step) + 2;
+
+    for offset in 0..=max_checks {
+        let bucket = first_bucket + offset;
+        let ts_secs = bucket * step * 60;
+        let Some(dt) = DateTime::from_timestamp(ts_secs, 0).map(|d| d.naive_utc()) else {
+            continue;
+        };
+        if dt <= now {
+            continue;
+        }
+        let minute_of_day = dt.hour() * 60 + dt.minute();
+        if s.quiet_hours.is_some_and(|q| q.contains(minute_of_day)) {
+            continue;
+        }
+        let kind = s
+            .interval
+            .kind
+            .unwrap_or_else(|| MessageKind::ALL[bucket.rem_euclid(4) as usize]);
+        return Some(Fire { at: dt, kind });
+    }
+    None
+}
+
+fn next_daily_fire(now: NaiveDateTime, s: &Settings) -> Option<Fire> {
     // Today and tomorrow always contain the next slot unless every slot is
     // quiet; a third day covers jitter pushing yesterday's late slot over.
     (-1..=2)
@@ -165,5 +204,51 @@ mod tests {
         assert_eq!(next_fire(at(21, 9, 0), &settings(&[], 0, None)), None);
         let all_quiet = settings(&[("02:00", Goal)], 0, Some(("00:00", "06:00")));
         assert_eq!(next_fire(at(21, 9, 0), &all_quiet), None);
+    }
+
+    #[test]
+    fn interval_fires_every_minute_and_rotates_kinds() {
+        let s = Settings {
+            schedule_mode: tospu_model::ScheduleMode::Interval,
+            interval: tospu_model::IntervalSchedule {
+                every_minutes: 1,
+                kind: None,
+            },
+            quiet_hours: None,
+            ..Settings::default()
+        };
+        let f1 = next_fire(at(21, 10, 0), &s).unwrap();
+        assert_eq!(f1.at, at(21, 10, 1));
+        let f2 = next_fire(f1.at, &s).unwrap();
+        assert_eq!(f2.at, at(21, 10, 2));
+        let f3 = next_fire(f2.at, &s).unwrap();
+        let f4 = next_fire(f3.at, &s).unwrap();
+        let kinds = [f1.kind, f2.kind, f3.kind, f4.kind];
+        let unique: std::collections::HashSet<_> = kinds.into_iter().collect();
+        assert_eq!(unique.len(), 4, "expected all 4 kinds to rotate: {kinds:?}");
+    }
+
+    #[test]
+    fn interval_respects_fixed_kind_and_quiet_hours() {
+        let s = Settings {
+            schedule_mode: tospu_model::ScheduleMode::Interval,
+            interval: tospu_model::IntervalSchedule {
+                every_minutes: 15,
+                kind: Some(Quote),
+            },
+            quiet_hours: Some(QuietHours {
+                start: "23:00".parse().unwrap(),
+                end: "07:30".parse().unwrap(),
+            }),
+            ..Settings::default()
+        };
+        let f = next_fire(at(21, 22, 50), &s).unwrap();
+        assert_eq!(
+            f,
+            Fire {
+                at: at(22, 7, 30),
+                kind: Quote
+            }
+        );
     }
 }
