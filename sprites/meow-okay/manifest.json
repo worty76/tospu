@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "meow-okay",
+  "name": "Meow Okay",
+  "author": "you",
+  "license": "Personal use",
+  "renderer": "spritesheet",
+  "frame": {
+    "width": 264,
+    "height": 199,
+    "displayHeight": 120
+  },
+  "pixelated": false,
+  "animations": {
+    "idle": {
+      "sheet": "idle.png",
+      "frames": 6,
+      "fps": 8,
+      "loop": true
+    },
+    "enter": {
+      "sheet": "wave.png",
+      "frames": 8,
+      "fps": 12,
+      "loop": false
+    },
+    "cheer": {
+      "sheet": "cheer.png",
+      "frames": 8,
+      "fps": 12,
+      "loop": false
+    },
+    "exit": {
+      "sheet": "sleep.png",
+      "frames": 6,
+      "fps": 8,
+      "loop": false
+    }
+  },
+  "moods": {
+    "goal": "cheer",
+    "proud": "cheer",
+    "gratitude": "idle",
+    "quote": "idle"
+  },
+  "bubble": {
+    "anchor": "top"
+  }
+}
